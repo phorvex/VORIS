@@ -216,7 +216,8 @@ class VorisAdvanced:
         self.active = False
     
     def process_command(self, command_text):
-        """Process a command using NLP"""        # Check for custom commands first
+        """Process a command using NLP"""
+        # Check for custom commands first
         custom_cmd = self.custom_commands.match_command(command_text)
         if custom_cmd:
             result = self.custom_commands.execute_command(custom_cmd, self.system)
@@ -229,7 +230,8 @@ class VorisAdvanced:
             else:
                 self.speak(f"Error executing custom command: {result.get('error', 'Unknown error')}")
                 return False
-                # Parse command
+        
+        # Parse command
         parsed = self.nlp.parse_command(command_text)
         intent = parsed["intent"]
         entities = parsed["entities"]
