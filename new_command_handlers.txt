@@ -1,0 +1,318 @@
+"""
+New command handlers for VORIS extended capabilities
+Add these to the process_command method in voris_advanced.py
+"""
+
+# Add these handlers after the existing elif blocks in process_command method
+
+        # MEDIA CONTROL COMMANDS
+        elif intent == "media_control" or any(word in command_text.lower() for word in ["volume", "play", "pause", "music", "spotify", "youtube"]):
+            if "volume" in command_text.lower():
+                if "up" in command_text.lower():
+                    result = self.media.volume_up()
+                elif "down" in command_text.lower():
+                    result = self.media.volume_down()
+                elif "mute" in command_text.lower():
+                    result = self.media.mute()
+                else:
+                    # Set specific volume
+                    import re
+                    match = re.search(r'(\d+)', command_text)
+                    if match:
+                        level = int(match.group(1))
+                        result = self.media.set_volume(level)
+                    else:
+                        result = {"success": False, "message": "Specify volume level (0-100)"}
+                
+                if result["success"]:
+                    self.speak(result["message"])
+                else:
+                    self.speak(result.get("error", "Volume control failed"))
+            
+            elif "play" in command_text.lower():
+                if "youtube" in command_text.lower():
+                    query = command_text.lower().replace("play", "").replace("on youtube", "").replace("youtube", "").strip()
+                    result = self.media.play_youtube(query)
+                    self.speak(result["message"])
+                elif "spotify" in command_text.lower():
+                    query = command_text.lower().replace("play", "").replace("on spotify", "").replace("spotify", "").strip()
+                    result = self.media.open_spotify(query)
+                    self.speak(result["message"])
+                else:
+                    result = self.media.play_music()
+                    self.speak(result["message"])
+            
+            elif "pause" in command_text.lower() or "stop" in command_text.lower():
+                result = self.media.pause_music()
+                self.speak(result["message"])
+            
+            elif "next" in command_text.lower():
+                result = self.media.next_track()
+                self.speak(result["message"])
+            
+            elif "previous" in command_text.lower():
+                result = self.media.previous_track()
+                self.speak(result["message"])
+        
+        # AUTOMATION COMMANDS
+        elif "organize" in command_text.lower() and "download" in command_text.lower():
+            self.speak("Organizing your downloads folder...")
+            result = self.automation.organize_downloads()
+            if result["success"]:
+                self.speak(f"Organized {result['total_files']} files")
+                for category, files in result['organized_files'].items():
+                    self.speak(f"{category}: {len(files)} files")
+            else:
+                self.speak(result["error"])
+        
+        elif "screenshot" in command_text.lower() or "take a picture" in command_text.lower():
+            result = self.automation.take_screenshot()
+            if result["success"]:
+                self.speak(f"Screenshot saved: {result['path']}")
+            else:
+                self.speak(f"Screenshot failed: {result['error']}")
+        
+        elif "monitor resources" in command_text.lower() or "resource usage" in command_text.lower():
+            result = self.automation.monitor_resources()
+            self.speak(f"CPU: {result['cpu']}%, Memory: {result['memory']}%, Disk: {result['disk']}%")
+            if result['alerts']:
+                self.speak("Alerts:")
+                for alert in result['alerts']:
+                    self.speak(alert)
+        
+        elif "find duplicates" in command_text.lower():
+            directory = "."  # Current directory
+            if "in" in command_text.lower():
+                parts = command_text.split("in")
+                if len(parts) > 1:
+                    directory = parts[1].strip()
+            
+            self.speak(f"Searching for duplicate files in {directory}...")
+            result = self.automation.find_duplicates(directory)
+            if result["success"]:
+                self.speak(f"Found {result['duplicates_found']} duplicate files")
+                self.speak(f"Wasted space: {result['wasted_space']}")
+            else:
+                self.speak(result["error"])
+        
+        # COMMUNICATION COMMANDS
+        elif "translate" in command_text.lower():
+            # Extract text to translate
+            if "to" in command_text.lower():
+                parts = command_text.lower().split("to")
+                if len(parts) > 1:
+                    text_part = parts[0].replace("translate", "").strip()
+                    lang_part = parts[1].strip().split()[0]
+                    
+                    result = self.communication.translate_text(text_part, target_language=lang_part)
+                    if result["success"]:
+                        self.speak(f"Translation: {result['translated']}")
+                    else:
+                        self.speak(f"Translation failed: {result['error']}")
+                else:
+                    self.speak("Please specify target language")
+            else:
+                self.speak("Format: translate [text] to [language]")
+        
+        elif "send notification" in command_text.lower() or "notify me" in command_text.lower():
+            message = command_text.replace("send notification", "").replace("notify me", "").strip()
+            result = self.communication.send_notification("VORIS Notification", message)
+            if result["success"]:
+                self.speak(f"Notification sent to {result['sent_to']} platform(s)")
+            else:
+                self.speak("Failed to send notification. Check your configuration.")
+        
+        # SMART CONTEXT / PRODUCTIVITY
+        elif "start focus" in command_text.lower() or "focus mode" in command_text.lower():
+            duration = 25  # Default Pomodoro
+            if "for" in command_text.lower():
+                import re
+                match = re.search(r'for (\d+) minutes?', command_text.lower())
+                if match:
+                    duration = int(match.group(1))
+            
+            task = "Focus Session"
+            if "on" in command_text.lower():
+                parts = command_text.split("on")
+                if len(parts) > 1:
+                    task = parts[1].strip()
+            
+            result = self.context.start_focus_mode(duration, task)
+            self.speak(result["message"])
+        
+        elif "track habit" in command_text.lower() or "log habit" in command_text.lower():
+            habit_name = command_text.replace("track habit", "").replace("log habit", "").strip()
+            result = self.context.log_habit(habit_name)
+            if result["success"]:
+                self.speak(result["message"])
+            else:
+                self.speak(result["error"])
+        
+        elif "habit stats" in command_text.lower() or "my habits" in command_text.lower():
+            result = self.context.get_habit_stats()
+            if result["success"] and result["habits"]:
+                self.speak("Your habit statistics:")
+                for habit in result["habits"]:
+                    self.speak(f"{habit['name']}: {habit['current_streak']} day streak, {habit['total_completions']} total")
+            else:
+                self.speak("No habits tracked yet")
+        
+        # DEVELOPER TOOLS
+        elif "git status" in command_text.lower():
+            result = self.dev_tools.git_status()
+            if result["success"]:
+                if result["clean"]:
+                    self.speak("Working tree is clean")
+                else:
+                    self.speak(f"Git status:\n{result['status']}")
+            else:
+                self.speak(f"Git error: {result['error']}")
+        
+        elif "git commit" in command_text.lower():
+            if "message" in command_text.lower() or '"' in command_text:
+                import re
+                match = re.search(r'"([^"]*)"', command_text)
+                if match:
+                    message = match.group(1)
+                    result = self.dev_tools.git_commit(".", message)
+                    if result["success"]:
+                        self.speak(result["message"])
+                    else:
+                        self.speak(result["error"])
+                else:
+                    self.speak("Please provide commit message in quotes")
+            else:
+                self.speak("Format: git commit message \"your message\"")
+        
+        elif "docker" in command_text.lower():
+            if "list" in command_text.lower() or "ps" in command_text.lower():
+                result = self.dev_tools.docker_ps()
+                if result["success"]:
+                    if result["count"] > 0:
+                        self.speak(f"{result['count']} running containers:")
+                        for container in result["containers"]:
+                            self.speak(f"{container['name']}: {container['status']}")
+                    else:
+                        self.speak("No running containers")
+                else:
+                    self.speak(result["error"])
+        
+        # HOME AUTOMATION
+        elif "turn on" in command_text.lower() or "turn off" in command_text.lower():
+            if "light" in command_text.lower() or "lights" in command_text.lower():
+                action = "on" if "turn on" in command_text.lower() else "off"
+                # Extract device name
+                device_name = "main_light"  # Default
+                if "bedroom" in command_text.lower():
+                    device_name = "bedroom_light"
+                elif "roku" in command_text.lower():
+                    device_name = "roku_light"
+                
+                result = self.home.control_light(device_name, action)
+                self.speak(result["message"])
+            elif "roku" in command_text.lower():
+                action = "select" if "turn on" in command_text.lower() else "home"
+                result = self.home.roku_command("roku", action)
+                self.speak(result["message"])
+        
+        elif "roku" in command_text.lower():
+            # Handle Roku commands
+            commands_map = {
+                "home": "home",
+                "back": "back",
+                "play": "play",
+                "pause": "pause",
+                "up": "up",
+                "down": "down",
+                "left": "left",
+                "right": "right"
+            }
+            
+            for keyword, cmd in commands_map.items():
+                if keyword in command_text.lower():
+                    result = self.home.roku_command("roku", cmd)
+                    if result["success"]:
+                        self.speak(result["message"])
+                    else:
+                        self.speak(f"Roku control failed: {result['error']}")
+                    break
+            else:
+                self.speak("Roku command not recognized. Try: play, pause, home, up, down, left, right")
+        
+        # HEALTH & WELLNESS
+        elif "log water" in command_text.lower() or "drank water" in command_text.lower():
+            amount = 250  # Default glass
+            import re
+            match = re.search(r'(\d+)\s*(?:ml|milliliters?)', command_text.lower())
+            if match:
+                amount = int(match.group(1))
+            
+            result = self.health.log_water(amount)
+            self.speak(result["message"])
+            self.speak(f"Today's total: {result['today_total']}/{result['goal']}")
+        
+        elif "health summary" in command_text.lower() or "wellness summary" in command_text.lower():
+            result = self.health.get_health_summary()
+            self.speak("Health Summary:")
+            self.speak(f"Water: {result['water']['today']}/{result['water']['goal']}")
+            self.speak(f"Exercise: {result['exercise']['today_minutes']} minutes today")
+            self.speak(f"Screen time: {result['screen_time']['today']}")
+            if result["insights"]:
+                self.speak("Insights:")
+                for insight in result["insights"]:
+                    self.speak(insight)
+        
+        elif "log exercise" in command_text.lower():
+            # Parse exercise details
+            import re
+            match = re.search(r'log exercise (\w+) (\d+)', command_text.lower())
+            if match:
+                activity = match.group(1)
+                duration = int(match.group(2))
+                result = self.health.log_exercise(activity, duration)
+                self.speak(result["message"])
+            else:
+                self.speak("Format: log exercise [activity] [minutes]")
+        
+        # FINANCE
+        elif "add expense" in command_text.lower() or "spent" in command_text.lower():
+            import re
+            match = re.search(r'(\d+\.?\d*)', command_text)
+            if match:
+                amount = float(match.group(1))
+                category = "general"
+                if "food" in command_text.lower():
+                    category = "food"
+                elif "transport" in command_text.lower():
+                    category = "transport"
+                elif "entertainment" in command_text.lower():
+                    category = "entertainment"
+                
+                result = self.finance.add_expense(amount, category)
+                self.speak(result["message"])
+                if isinstance(result["budget_status"], dict):
+                    self.speak(f"Month total: {result['month_total']}")
+                    self.speak(f"Budget status: {result['budget_status']['status']}")
+            else:
+                self.speak("Please specify amount. Example: add expense 50 for food")
+        
+        elif "budget status" in command_text.lower() or "financial summary" in command_text.lower():
+            result = self.finance.get_financial_summary()
+            self.speak(f"Month total: {result['month_total']}")
+            self.speak(f"Daily average: {result['daily_average']}")
+            if result["insights"]:
+                for insight in result["insights"]:
+                    self.speak(insight)
+        
+        elif "stock price" in command_text.lower():
+            import re
+            match = re.search(r'(?:stock price|price of) (\w+)', command_text.lower())
+            if match:
+                symbol = match.group(1).upper()
+                result = self.finance.get_stock_price(symbol)
+                if result["success"]:
+                    self.speak(f"{symbol}: {result['price']} ({result['change_percent']})")
+                else:
+                    self.speak(result["error"])
+            else:
+                self.speak("Specify stock symbol. Example: stock price AAPL")

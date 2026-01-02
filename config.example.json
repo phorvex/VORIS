@@ -1,0 +1,22 @@
+{
+    "voice_enabled": false,
+    "voice_rate": 150,
+    "voice_volume": 0.9,
+    "wake_word": "voris",
+    "always_listening": false,
+    "learning_enabled": true,
+    "use_voice_output": false,
+    
+    "_comment_ollama": "Ollama LLM Settings (optional AI enhancement)",
+    "ollama_enabled": false,
+    "ollama_url": "http://localhost:11434",
+    "ollama_model": "llama3.2:latest",
+    "ollama_temperature": 0.7,
+    "ollama_max_tokens": 500,
+    "ollama_timeout": 60,
+    "ollama_debug": false,
+    
+    "_comment": "Set ollama_enabled to true to use LLM for better responses",
+    "_note": "Increase ollama_timeout if you get timeout errors (try 120)",
+    "_tip": "Use smaller models like phi3 or tinyllama for faster responses"
+}
