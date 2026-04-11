@@ -1,6 +1,7 @@
 import datetime
 import pytz
 from memory import remember, recall, save_memory, load_memory
+from search import search
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -21,6 +22,8 @@ def detect_intent(text):
         return "date"
     if any(phrase in text for phrase in ["what is your name", "who are you", "what are you"]):
         return "voris_identity"
+    if any(phrase in text for phrase in ["search for", "look up", "find out about"]):
+        return "search"
     return None
 
 load_memory()
@@ -50,6 +53,11 @@ while True:
     elif detect_intent(user_input) == "date":
         today = datetime.datetime.now(TIMEZONE).strftime("%A, %B %d %Y")
         print(f"VORIS: Today is {today}.")
+    elif detect_intent(user_input) == "search":
+        query = user_input.lower().replace("search for", "").replace("look up", "").replace("find out about", "").strip()
+        print("VORIS: Searching...")
+        result = search(query)
+        print(f"VORIS: {result}")
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
