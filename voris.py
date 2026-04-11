@@ -19,7 +19,7 @@ while True:
         save_memory()
         print(f"VORIS: Got it. I'll remember that {key} is {value}.")
     elif user_input.lower().startswith("what is"):
-        key = normalize(user_input.split("what is")[1].strip())
+        key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
         if result == "I don't know that yet.":
             answer = input(f"VORIS: I don't know {key} yet. What is it? ")
