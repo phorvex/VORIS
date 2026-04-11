@@ -2,6 +2,7 @@ import datetime
 import pytz
 from memory import remember, recall, save_memory, load_memory
 from search import search
+from personality import startup, greeting, searching, remember_confirm, not_found, shutdown
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -29,7 +30,8 @@ def detect_intent(text):
     return None
 
 load_memory()
-print("VORIS online.")
+name = recall("name")
+print(startup(name))
 
 TIMEZONE = pytz.timezone("America/New_York")
 
@@ -40,13 +42,10 @@ while True:
         key, value = parts.split(" is ")
         remember(normalize(key.strip()), value.strip())
         save_memory()
-        print(f"VORIS: Got it. I'll remember that {key} is {value}.")
+        print(f"VORIS: {remember_confirm(key.strip(), value.strip())}")
     elif detect_intent(user_input) == "greeting":
         name = recall("name")
-        if name != "I don't know that yet.":
-            print(f"VORIS: Hello, {name}.")
-        else:
-            print("VORIS: Hello.")
+        print(f"VORIS: {greeting(name)}")
     elif detect_intent(user_input) == "identity":
         name = recall("name")
         print(f"VORIS: You are {name}.")
@@ -63,23 +62,24 @@ while True:
         print(f"VORIS: Today is {today}.")
     elif detect_intent(user_input) == "search":
         query = user_input.lower().replace("search for", "").replace("look up", "").replace("find out about", "").strip()
-        print("VORIS: Searching...")
+        print(f"VORIS: {searching()}")
         result = search(query)
         print(f"VORIS: {result}")
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
         if result == "I don't know that yet.":
-            print("VORIS: Let me look that up...")
+            print(f"VORIS: {not_found(key)}")
             searched = search(user_input)
             print(f"VORIS: {searched}")
         else:
             print(f"VORIS: {result}")
     elif user_input.lower() in ["exit", "goodbye", "shutdown"]:
         save_memory()
-        print("VORIS: Going offline. Goodbye.")
+        name = recall("name")
+        print(f"VORIS: {shutdown(name)}")
         break
     else:
-        print("VORIS: Let me look that up...")
+        print(f"VORIS: {searching()}")
         result = search(user_input)
         print(f"VORIS: {result}")
