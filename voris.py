@@ -16,3 +16,5 @@ while True:
         save_memory()
         print("VORIS: Going offline. Goodbye.")
         break
+    else:
+        print("VORIS: I don't know how to handle that yet.")
