@@ -1,9 +1,12 @@
 from memory import remember, recall, save_memory, load_memory
+
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
+    key = key.replace("?", "").replace(".", "").replace("!", "")
     words = key.lower().split()
     filtered = [w for w in words if w not in stopwords]
     return " ".join(filtered)
+
 load_memory()
 print("VORIS online.")
 
