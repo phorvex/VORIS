@@ -12,6 +12,8 @@ def normalize(key):
 
 def detect_intent(text):
     text = text.lower().replace("?", "").replace(".", "").replace("!", "")
+    if any(phrase in text for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
+        return "greeting"
     if any(phrase in text for phrase in ["who am i", "what is my name", "what's my name"]):
         return "identity"
     if any(phrase in text for phrase in ["how old am i", "what is my age", "what's my age"]):
@@ -39,6 +41,12 @@ while True:
         remember(normalize(key.strip()), value.strip())
         save_memory()
         print(f"VORIS: Got it. I'll remember that {key} is {value}.")
+    elif detect_intent(user_input) == "greeting":
+        name = recall("name")
+        if name != "I don't know that yet.":
+            print(f"VORIS: Hello, {name}.")
+        else:
+            print("VORIS: Hello.")
     elif detect_intent(user_input) == "identity":
         name = recall("name")
         print(f"VORIS: You are {name}.")
