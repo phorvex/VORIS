@@ -1,3 +1,5 @@
+import datetime
+import pytz
 from memory import remember, recall, save_memory, load_memory
 
 def normalize(key):
@@ -7,8 +9,24 @@ def normalize(key):
     filtered = [w for w in words if w not in stopwords]
     return " ".join(filtered)
 
+def detect_intent(text):
+    text = text.lower().replace("?", "").replace(".", "").replace("!", "")
+    if any(phrase in text for phrase in ["who am i", "what is my name", "what's my name"]):
+        return "identity"
+    if any(phrase in text for phrase in ["how old am i", "what is my age", "what's my age"]):
+        return "age"
+    if any(phrase in text for phrase in ["what time is it", "what's the time", "current time"]):
+        return "time"
+    if any(phrase in text for phrase in ["what is the date", "what is todays date", "what day is it", "today's date"]):
+        return "date"
+    if any(phrase in text for phrase in ["what is your name", "who are you", "what are you"]):
+        return "voris_identity"
+    return None
+
 load_memory()
 print("VORIS online.")
+
+TIMEZONE = pytz.timezone("America/New_York")
 
 while True:
     user_input = input("You: ")
@@ -18,6 +36,20 @@ while True:
         remember(normalize(key.strip()), value.strip())
         save_memory()
         print(f"VORIS: Got it. I'll remember that {key} is {value}.")
+    elif detect_intent(user_input) == "identity":
+        name = recall("name")
+        print(f"VORIS: You are {name}.")
+    elif detect_intent(user_input) == "voris_identity":
+        print(f"VORIS: I am VORIS. I am yours.")
+    elif detect_intent(user_input) == "age":
+        age = recall("age")
+        print(f"VORIS: You are {age} years old.")
+    elif detect_intent(user_input) == "time":
+        now = datetime.datetime.now(TIMEZONE).strftime("%I:%M %p")
+        print(f"VORIS: It is {now}.")
+    elif detect_intent(user_input) == "date":
+        today = datetime.datetime.now(TIMEZONE).strftime("%A, %B %d %Y")
+        print(f"VORIS: Today is {today}.")
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
