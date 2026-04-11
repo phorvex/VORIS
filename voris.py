@@ -16,7 +16,7 @@ def detect_intent(text):
         return "identity"
     if any(phrase in text for phrase in ["how old am i", "what is my age", "what's my age"]):
         return "age"
-    if any(phrase in text for phrase in ["what time is it", "what's the time", "current time"]):
+    if any(phrase in text for phrase in ["what time is it", "what's the time", "current time", "what is the time"]):
         return "time"
     if any(phrase in text for phrase in ["what is the date", "what is todays date", "what day is it", "today's date"]):
         return "date"
@@ -62,10 +62,9 @@ while True:
         key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
         if result == "I don't know that yet.":
-            answer = input(f"VORIS: I don't know {key} yet. What is it? ")
-            remember(key, answer)
-            save_memory()
-            print(f"VORIS: Got it. I'll remember that.")
+            print("VORIS: Let me look that up...")
+            searched = search(user_input)
+            print(f"VORIS: {searched}")
         else:
             print(f"VORIS: {result}")
     elif user_input.lower() in ["exit", "goodbye", "shutdown"]:
@@ -73,4 +72,6 @@ while True:
         print("VORIS: Going offline. Goodbye.")
         break
     else:
-        print("VORIS: I don't know how to handle that yet.")
+        print("VORIS: Let me look that up...")
+        result = search(user_input)
+        print(f"VORIS: {result}")
