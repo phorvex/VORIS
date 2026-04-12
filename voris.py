@@ -6,6 +6,7 @@ from search import search
 from personality import startup, greeting, searching, remember_confirm, not_found, shutdown, how_are_you
 from learn import extract_facts
 from system import get_system_summary, get_running_processes, get_network_info, get_disk_partitions, get_battery, get_uptime, get_installed_packages, get_environment_vars
+from tasks import run_command, create_file, list_directory, read_file, delete_file
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -57,6 +58,8 @@ def detect_intent(text):
         return "identity"
     if any(phrase in clean for phrase in ["how old am i", "what is my age", "what's my age"]):
         return "age"
+    if any(phrase in clean for phrase in ["when is my birthday", "what is my birthday", "whats my birthday", "when was i born", "what is my birth date"]):
+        return "birthday"
     if any(phrase in clean for phrase in ["where am i right now", "where am i currently", "where am i"]):
         return "current_location"
     if any(phrase in clean for phrase in ["where do i live", "what is my location", "whatis my location", "where do i stay"]):
@@ -91,6 +94,16 @@ def detect_intent(text):
         return "packages"
     if any(phrase in clean for phrase in ["environment", "env vars", "show environment"]):
         return "environment"
+    if any(phrase in clean for phrase in ["run ", "execute ", "cat ", "ls", "pwd", "whoami"]):
+        return "run_command"
+    if any(phrase in clean for phrase in ["list files", "list directory", "show files", "what files", "what's in"]):
+        return "list_dir"
+    if any(phrase in clean for phrase in ["create file", "make file", "new file"]):
+        return "create_file"
+    if any(phrase in clean for phrase in ["read file", "show file", "open file"]):
+        return "read_file"
+    if any(phrase in clean for phrase in ["delete file", "remove file"]):
+        return "delete_file"
     return None
 
 def get_last_intent():
@@ -147,6 +160,12 @@ while True:
     elif detect_intent(user_input) == "age":
         age = recall("age")
         voris_say(f"You are {age} years old.")
+    elif detect_intent(user_input) == "birthday":
+        birthday = recall("birthday")
+        if birthday == "I don't know that yet.":
+            voris_say("I don't know your birthday yet.")
+        else:
+            voris_say(f"Your birthday is {birthday}.")
     elif detect_intent(user_input) == "current_location":
         voris_say(searching())
         location = get_current_location()
@@ -210,6 +229,31 @@ while True:
         voris_say(get_installed_packages())
     elif detect_intent(user_input) == "environment":
         voris_say(get_environment_vars())
+    elif detect_intent(user_input) == "run_command":
+        command = user_input.strip()
+        for phrase in ["run ", "execute "]:
+            if user_input.lower().startswith(phrase):
+                command = user_input[len(phrase):].strip()
+                break
+        voris_say(f"Running: {command}")
+        result = run_command(command)
+        voris_say(result)
+    elif detect_intent(user_input) == "list_dir":
+        path = "."
+        for phrase in ["what's in", "list files in", "list directory", "show files in"]:
+            if phrase in user_input.lower():
+                path = user_input.lower().split(phrase)[1].strip() or "."
+                break
+        voris_say(list_directory(path))
+    elif detect_intent(user_input) == "create_file":
+        parts = user_input.lower().replace("create file", "").replace("make file", "").replace("new file", "").strip()
+        voris_say(create_file(parts))
+    elif detect_intent(user_input) == "read_file":
+        path = user_input.lower().replace("read file", "").replace("show file", "").replace("open file", "").strip()
+        voris_say(read_file(path))
+    elif detect_intent(user_input) == "delete_file":
+        path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
+        voris_say(delete_file(path))
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
