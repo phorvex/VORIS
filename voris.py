@@ -141,7 +141,7 @@ def get_last_search_query():
         for phrase in ["search for", "look up", "find out about"]:
             if phrase in content:
                 return content.split(phrase)[1].strip()
-        if len(content) > 10:
+        if len(content) > 10 and content != user_input.lower():
             return content
     return None
 
@@ -322,7 +322,11 @@ while True:
         elif is_followup(user_input):
             last_query = get_last_search_query()
             if last_query:
-                combined = f"{user_input} {last_query}"
+                filler = ["do i need to", "how much would", "what about", "will it", "can i", "should i", "is it", "what is the", "tell me more about", "and the"]
+                clean_followup = user_input.lower()
+                for f in filler:
+                    clean_followup = clean_followup.replace(f, "").strip()
+                combined = f"{clean_followup} {last_query}"
                 voris_say(searching())
                 result = search(combined)
                 voris_say(result)
