@@ -35,6 +35,17 @@ def get_weather_tomorrow(location):
     except:
         return "I couldn't reach the weather service."
 
+def get_current_location():
+    try:
+        response = requests.get("https://ipinfo.io/json", timeout=5)
+        data = response.json()
+        city = data.get("city", "")
+        region = data.get("region", "")
+        country = data.get("country", "")
+        return f"{city}, {region}, {country}"
+    except:
+        return "I couldn't determine your current location."
+
 def detect_intent(text):
     clean = text.lower().replace("?", "").replace(".", "").replace("!", "").strip()
     if any(clean == phrase or clean.startswith(phrase + " ") for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
@@ -45,8 +56,10 @@ def detect_intent(text):
         return "identity"
     if any(phrase in clean for phrase in ["how old am i", "what is my age", "what's my age"]):
         return "age"
-    if any(phrase in clean for phrase in ["where am i", "what is my location", "where do i live", "whatis my location"]):
-        return "location"
+    if any(phrase in clean for phrase in ["where am i right now", "where am i currently", "where am i"]):
+        return "current_location"
+    if any(phrase in clean for phrase in ["where do i live", "what is my location", "whatis my location", "where do i stay"]):
+        return "home_location"
     if any(phrase in clean for phrase in ["what time is it", "what's the time", "current time", "what is the time"]):
         return "time"
     if any(phrase in clean for phrase in ["what is the date tomorrow", "tomorrow's date", "what day is tomorrow"]):
@@ -98,9 +111,6 @@ while True:
     conversation_history.append({"role": "user", "content": user_input})
     extracted = extract_facts(user_input, remember, recall, save_memory)
 
-    if extracted and not user_input.lower().startswith("remember"):
-        pass
-
     if user_input.lower().startswith("remember"):
         parts = user_input.split("remember")[1].strip()
         key, value = parts.split(" is ")
@@ -120,12 +130,16 @@ while True:
     elif detect_intent(user_input) == "age":
         age = recall("age")
         voris_say(f"You are {age} years old.")
-    elif detect_intent(user_input) == "location":
+    elif detect_intent(user_input) == "current_location":
+        voris_say(searching())
+        location = get_current_location()
+        voris_say(f"Based on your IP, you appear to be in {location}.")
+    elif detect_intent(user_input) == "home_location":
         location = recall("location")
         if location == "I don't know that yet.":
-            voris_say("I don't know where you are yet.")
+            voris_say("I don't know where you live yet.")
         else:
-            voris_say(f"You are in {location}.")
+            voris_say(f"You live in {location}.")
     elif detect_intent(user_input) == "time":
         now = datetime.datetime.now(TIMEZONE).strftime("%I:%M %p")
         voris_say(f"It is {now}.")
