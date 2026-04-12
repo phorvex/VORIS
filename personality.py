@@ -29,3 +29,12 @@ def not_found(key):
 
 def shutdown(name):
     return f"Going offline. I'll be here when you need me, {name}."
+
+def how_are_you():
+    responses = [
+        "I'm operational. More importantly, how are you?",
+        "Running well. What do you need?",
+        "All systems nominal. What's on your mind?",
+        "I'm here. That's what matters. You good?",
+    ]
+    return random.choice(responses)
