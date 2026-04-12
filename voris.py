@@ -5,6 +5,7 @@ from memory import remember, recall, save_memory, load_memory
 from search import search
 from personality import startup, greeting, searching, remember_confirm, not_found, shutdown, how_are_you
 from learn import extract_facts
+from system import get_system_summary
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -74,6 +75,8 @@ def detect_intent(text):
         return "search"
     if any(phrase in clean for phrase in ["what did i say", "what was my last message", "repeat that"]):
         return "history"
+    if any(phrase in clean for phrase in ["system status", "how is the system", "system info", "what system are you on", "check system", "system report"]):
+        return "system_status"
     return None
 
 def get_last_intent():
@@ -174,6 +177,8 @@ while True:
             voris_say(f"You said: {last}")
         else:
             voris_say("I don't have anything before this.")
+    elif detect_intent(user_input) == "system_status":
+        voris_say(get_system_summary())
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
