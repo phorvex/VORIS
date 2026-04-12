@@ -7,6 +7,7 @@ from personality import startup, greeting, searching, remember_confirm, not_foun
 from learn import extract_facts
 from system import get_system_summary, get_running_processes, get_network_info, get_disk_partitions, get_battery, get_uptime, get_installed_packages, get_environment_vars
 from tasks import run_command, create_file, list_directory, read_file, delete_file
+from voice import speak
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -135,20 +136,24 @@ def get_last_location():
 load_memory()
 conversation_history = []
 name = recall("name")
-print(startup(name))
-
-TIMEZONE = pytz.timezone("America/New_York")
 
 def voris_say(message):
     print(f"VORIS: {message}")
     conversation_history.append({"role": "voris", "content": message})
+    speak(message)
+
+startup_message = startup(name)
+print(startup_message)
+speak(startup_message)
+
+TIMEZONE = pytz.timezone("America/New_York")
 
 while True:
     user_input = input("You: ")
     conversation_history.append({"role": "user", "content": user_input})
     extracted = extract_facts(user_input, remember, recall, save_memory)
     if extracted:
-        voris_say(f"Noted.")
+        voris_say("Noted.")
 
     if user_input.lower().startswith("remember"):
         parts = user_input.split("remember")[1].strip()
