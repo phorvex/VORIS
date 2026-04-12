@@ -70,9 +70,11 @@ def detect_intent(text):
         return "date_tomorrow"
     if any(phrase in clean for phrase in ["what is the date", "what is todays date", "what day is it", "today's date"]):
         return "date"
-    if any(phrase in clean for phrase in ["what is your name", "who are you", "what are you"]):
+    if any(phrase in clean for phrase in ["what is your name", "who are you", "what are you", "what is your goal", "what is your purpose"]):
         return "voris_identity"
-    if any(phrase in clean for phrase in ["weather in", "weather for", "what is the weather", "whats the weather"]):
+    if any(phrase in clean for phrase in ["weather here", "weather outside", "weather right now", "whats the weather"]):
+        return "weather_here"
+    if any(phrase in clean for phrase in ["weather in", "weather for", "what is the weather"]):
         return "weather"
     if any(phrase in clean for phrase in ["search for", "look up", "find out about"]):
         return "search"
@@ -105,6 +107,11 @@ def detect_intent(text):
     if any(phrase in clean for phrase in ["delete file", "remove file"]):
         return "delete_file"
     return None
+
+def is_shutdown(text):
+    clean = text.lower().strip()
+    triggers = ["exit", "goodbye", "shutdown", "shut down", "turn off", "bye", "exit please", "please exit", "close", "quit"]
+    return any(clean == t or clean.startswith(t) for t in triggers)
 
 def get_last_intent():
     for entry in reversed(conversation_history):
@@ -140,6 +147,8 @@ while True:
     user_input = input("You: ")
     conversation_history.append({"role": "user", "content": user_input})
     extracted = extract_facts(user_input, remember, recall, save_memory)
+    if extracted:
+        voris_say(f"Noted.")
 
     if user_input.lower().startswith("remember"):
         parts = user_input.split("remember")[1].strip()
@@ -147,6 +156,11 @@ while True:
         remember(normalize(key.strip()), value.strip())
         save_memory()
         voris_say(remember_confirm(key.strip(), value.strip()))
+    elif is_shutdown(user_input):
+        save_memory()
+        name = recall("name")
+        voris_say(shutdown(name))
+        break
     elif detect_intent(user_input) == "greeting":
         name = recall("name")
         voris_say(greeting(name))
@@ -156,7 +170,7 @@ while True:
         name = recall("name")
         voris_say(f"You are {name}.")
     elif detect_intent(user_input) == "voris_identity":
-        voris_say("I am VORIS. I am yours.")
+        voris_say("I am VORIS. I exist to serve you, learn from you, and grow with you.")
     elif detect_intent(user_input) == "age":
         age = recall("age")
         voris_say(f"You are {age} years old.")
@@ -185,6 +199,14 @@ while True:
     elif detect_intent(user_input) == "date_tomorrow":
         tomorrow = datetime.datetime.now(TIMEZONE) + datetime.timedelta(days=1)
         voris_say(f"Tomorrow is {tomorrow.strftime('%A, %B %d %Y')}.")
+    elif detect_intent(user_input) == "weather_here":
+        location = recall("location")
+        if location == "I don't know that yet.":
+            voris_say(searching())
+            location = get_current_location()
+        voris_say(searching())
+        result = get_weather(location)
+        voris_say(result)
     elif detect_intent(user_input) == "weather":
         text = user_input.lower()
         location = None
@@ -263,11 +285,6 @@ while True:
             voris_say(searched)
         else:
             voris_say(result)
-    elif user_input.lower() in ["exit", "goodbye", "shutdown"]:
-        save_memory()
-        name = recall("name")
-        voris_say(shutdown(name))
-        break
     else:
         last_intent = get_last_intent()
         if last_intent == "weather" and any(word in user_input.lower() for word in ["tomorrow", "tonight", "weekend", "later"]):
