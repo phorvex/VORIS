@@ -1,35 +1,33 @@
 import subprocess
 import os
-import shutil
 
-ALLOWED_COMMANDS = [
-    "ls", "pwd", "whoami", "uname", "df", "du", "top", "ps",
-    "cat", "echo", "mkdir", "touch", "rm", "mv", "cp", "find",
-    "grep", "ping", "curl", "wget", "git", "python", "pip",
-    "ifconfig", "ip", "netstat", "ss", "nmap", "whois", "dig",
-    "traceroute", "arp", "chmod", "chown", "systemctl", "service",
-    "apt", "apt-get", "pacman", "dnf", "yum"
+INTERACTIVE_COMMANDS = [
+    "nano", "vim", "vi", "emacs", "top", "htop", "less", "more",
+    "dpkg --configure", "apt upgrade", "apt install", "mysql", "python",
+    "bash", "sh", "zsh", "fish", "ssh"
 ]
 
-def is_allowed(command):
-    base = command.strip().split()[0]
-    return base in ALLOWED_COMMANDS
+def is_interactive(command):
+    for cmd in INTERACTIVE_COMMANDS:
+        if cmd in command.lower():
+            return True
+    return False
 
 def run_command(command):
-    if not is_allowed(command):
-        return f"I won't run that command. It's not on my approved list."
+    if is_interactive(command):
+        return f"That command requires an interactive terminal. Run it directly in your terminal instead."
     try:
         result = subprocess.run(
             command,
             shell=True,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=60
         )
         output = result.stdout.strip() or result.stderr.strip()
         return output if output else "Command ran but returned no output."
     except subprocess.TimeoutExpired:
-        return "Command timed out."
+        return "Command timed out after 60 seconds. If it needs longer, run it directly in your terminal."
     except Exception as e:
         return f"Error running command: {str(e)}"
 
