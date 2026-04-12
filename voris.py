@@ -4,6 +4,7 @@ import requests
 from memory import remember, recall, save_memory, load_memory
 from search import search
 from personality import startup, greeting, searching, remember_confirm, not_found, shutdown, how_are_you
+from learn import extract_facts
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -44,6 +45,8 @@ def detect_intent(text):
         return "identity"
     if any(phrase in clean for phrase in ["how old am i", "what is my age", "what's my age"]):
         return "age"
+    if any(phrase in clean for phrase in ["where am i", "what is my location", "where do i live", "whatis my location"]):
+        return "location"
     if any(phrase in clean for phrase in ["what time is it", "what's the time", "current time", "what is the time"]):
         return "time"
     if any(phrase in clean for phrase in ["what is the date tomorrow", "tomorrow's date", "what day is tomorrow"]):
@@ -93,6 +96,10 @@ def voris_say(message):
 while True:
     user_input = input("You: ")
     conversation_history.append({"role": "user", "content": user_input})
+    extracted = extract_facts(user_input, remember, recall, save_memory)
+
+    if extracted and not user_input.lower().startswith("remember"):
+        pass
 
     if user_input.lower().startswith("remember"):
         parts = user_input.split("remember")[1].strip()
@@ -113,6 +120,12 @@ while True:
     elif detect_intent(user_input) == "age":
         age = recall("age")
         voris_say(f"You are {age} years old.")
+    elif detect_intent(user_input) == "location":
+        location = recall("location")
+        if location == "I don't know that yet.":
+            voris_say("I don't know where you are yet.")
+        else:
+            voris_say(f"You are in {location}.")
     elif detect_intent(user_input) == "time":
         now = datetime.datetime.now(TIMEZONE).strftime("%I:%M %p")
         voris_say(f"It is {now}.")
@@ -168,6 +181,8 @@ while True:
             voris_say(searching())
             result = get_weather_tomorrow(location)
             voris_say(result)
+        elif extracted:
+            pass
         else:
             voris_say(searching())
             result = search(user_input)
