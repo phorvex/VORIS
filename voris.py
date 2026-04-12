@@ -23,6 +23,17 @@ def get_weather(location):
     except:
         return "I couldn't reach the weather service."
 
+def get_weather_tomorrow(location):
+    try:
+        url = f"https://wttr.in/{location}?format=%t+%C"
+        response = requests.get(url, timeout=5)
+        response.encoding = "utf-8"
+        if response.status_code == 200:
+            return f"Tomorrow in {location}: {response.text.strip()}"
+        return "I couldn't get tomorrow's forecast right now."
+    except:
+        return "I couldn't reach the weather service."
+
 def detect_intent(text):
     clean = text.lower().replace("?", "").replace(".", "").replace("!", "").strip()
     if any(clean == phrase or clean.startswith(phrase + " ") for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
@@ -35,6 +46,8 @@ def detect_intent(text):
         return "age"
     if any(phrase in clean for phrase in ["what time is it", "what's the time", "current time", "what is the time"]):
         return "time"
+    if any(phrase in clean for phrase in ["what is the date tomorrow", "tomorrow's date", "what day is tomorrow"]):
+        return "date_tomorrow"
     if any(phrase in clean for phrase in ["what is the date", "what is todays date", "what day is it", "today's date"]):
         return "date"
     if any(phrase in clean for phrase in ["what is your name", "who are you", "what are you"]):
@@ -43,41 +56,72 @@ def detect_intent(text):
         return "weather"
     if any(phrase in clean for phrase in ["search for", "look up", "find out about"]):
         return "search"
+    if any(phrase in clean for phrase in ["what did i say", "what was my last message", "repeat that"]):
+        return "history"
+    return None
+
+def get_last_intent():
+    for entry in reversed(conversation_history):
+        if entry["role"] == "voris":
+            continue
+        content = entry["content"].lower()
+        if "weather" in content:
+            return "weather"
+        if "search" in content:
+            return "search"
+    return None
+
+def get_last_location():
+    for entry in reversed(conversation_history):
+        content = entry["content"].lower()
+        for phrase in ["weather in", "weather for"]:
+            if phrase in content:
+                return content.split(phrase)[1].strip().replace("?", "")
     return None
 
 load_memory()
+conversation_history = []
 name = recall("name")
 print(startup(name))
 
 TIMEZONE = pytz.timezone("America/New_York")
 
+def voris_say(message):
+    print(f"VORIS: {message}")
+    conversation_history.append({"role": "voris", "content": message})
+
 while True:
     user_input = input("You: ")
+    conversation_history.append({"role": "user", "content": user_input})
+
     if user_input.lower().startswith("remember"):
         parts = user_input.split("remember")[1].strip()
         key, value = parts.split(" is ")
         remember(normalize(key.strip()), value.strip())
         save_memory()
-        print(f"VORIS: {remember_confirm(key.strip(), value.strip())}")
+        voris_say(remember_confirm(key.strip(), value.strip()))
     elif detect_intent(user_input) == "greeting":
         name = recall("name")
-        print(f"VORIS: {greeting(name)}")
+        voris_say(greeting(name))
     elif detect_intent(user_input) == "how_are_you":
-        print(f"VORIS: {how_are_you()}")
+        voris_say(how_are_you())
     elif detect_intent(user_input) == "identity":
         name = recall("name")
-        print(f"VORIS: You are {name}.")
+        voris_say(f"You are {name}.")
     elif detect_intent(user_input) == "voris_identity":
-        print(f"VORIS: I am VORIS. I am yours.")
+        voris_say("I am VORIS. I am yours.")
     elif detect_intent(user_input) == "age":
         age = recall("age")
-        print(f"VORIS: You are {age} years old.")
+        voris_say(f"You are {age} years old.")
     elif detect_intent(user_input) == "time":
         now = datetime.datetime.now(TIMEZONE).strftime("%I:%M %p")
-        print(f"VORIS: It is {now}.")
+        voris_say(f"It is {now}.")
     elif detect_intent(user_input) == "date":
         today = datetime.datetime.now(TIMEZONE).strftime("%A, %B %d %Y")
-        print(f"VORIS: Today is {today}.")
+        voris_say(f"Today is {today}.")
+    elif detect_intent(user_input) == "date_tomorrow":
+        tomorrow = datetime.datetime.now(TIMEZONE) + datetime.timedelta(days=1)
+        voris_say(f"Tomorrow is {tomorrow.strftime('%A, %B %d %Y')}.")
     elif detect_intent(user_input) == "weather":
         text = user_input.lower()
         location = None
@@ -89,29 +133,42 @@ while True:
             location = recall("location")
             if location == "I don't know that yet.":
                 location = "Lakeland Florida"
-        print(f"VORIS: {searching()}")
+        voris_say(searching())
         result = get_weather(location)
-        print(f"VORIS: {result}")
+        voris_say(result)
     elif detect_intent(user_input) == "search":
         query = user_input.lower().replace("search for", "").replace("look up", "").replace("find out about", "").strip()
-        print(f"VORIS: {searching()}")
+        voris_say(searching())
         result = search(query)
-        print(f"VORIS: {result}")
+        voris_say(result)
+    elif detect_intent(user_input) == "history":
+        if len(conversation_history) > 1:
+            last = conversation_history[-2]["content"]
+            voris_say(f"You said: {last}")
+        else:
+            voris_say("I don't have anything before this.")
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
         if result == "I don't know that yet.":
-            print(f"VORIS: {not_found(key)}")
+            voris_say(not_found(key))
             searched = search(user_input)
-            print(f"VORIS: {searched}")
+            voris_say(searched)
         else:
-            print(f"VORIS: {result}")
+            voris_say(result)
     elif user_input.lower() in ["exit", "goodbye", "shutdown"]:
         save_memory()
         name = recall("name")
-        print(f"VORIS: {shutdown(name)}")
+        voris_say(shutdown(name))
         break
     else:
-        print(f"VORIS: {searching()}")
-        result = search(user_input)
-        print(f"VORIS: {result}")
+        last_intent = get_last_intent()
+        if last_intent == "weather" and any(word in user_input.lower() for word in ["tomorrow", "tonight", "weekend", "later"]):
+            location = get_last_location() or "Lakeland Florida"
+            voris_say(searching())
+            result = get_weather_tomorrow(location)
+            voris_say(result)
+        else:
+            voris_say(searching())
+            result = search(user_input)
+            voris_say(result)
