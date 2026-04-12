@@ -5,7 +5,7 @@ from memory import remember, recall, save_memory, load_memory
 from search import search
 from personality import startup, greeting, searching, remember_confirm, not_found, shutdown, how_are_you
 from learn import extract_facts
-from system import get_system_summary
+from system import get_system_summary, get_running_processes, get_network_info, get_disk_partitions, get_battery, get_uptime, get_installed_packages, get_environment_vars
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -77,6 +77,20 @@ def detect_intent(text):
         return "history"
     if any(phrase in clean for phrase in ["system status", "how is the system", "system info", "what system are you on", "check system", "system report"]):
         return "system_status"
+    if any(phrase in clean for phrase in ["what is running", "running processes", "show processes", "active processes"]):
+        return "processes"
+    if any(phrase in clean for phrase in ["network info", "network status", "what network", "show network", "ip address"]):
+        return "network"
+    if any(phrase in clean for phrase in ["show partitions", "disk partitions", "storage info", "what drives"]):
+        return "partitions"
+    if any(phrase in clean for phrase in ["battery", "battery status", "how much battery"]):
+        return "battery"
+    if any(phrase in clean for phrase in ["uptime", "how long has", "system uptime"]):
+        return "uptime"
+    if any(phrase in clean for phrase in ["installed packages", "what is installed", "show packages"]):
+        return "packages"
+    if any(phrase in clean for phrase in ["environment", "env vars", "show environment"]):
+        return "environment"
     return None
 
 def get_last_intent():
@@ -179,6 +193,23 @@ while True:
             voris_say("I don't have anything before this.")
     elif detect_intent(user_input) == "system_status":
         voris_say(get_system_summary())
+    elif detect_intent(user_input) == "processes":
+        voris_say("Here are the top running processes:")
+        voris_say(get_running_processes())
+    elif detect_intent(user_input) == "network":
+        voris_say("Network information:")
+        voris_say(get_network_info())
+    elif detect_intent(user_input) == "partitions":
+        voris_say("Disk partitions:")
+        voris_say(get_disk_partitions())
+    elif detect_intent(user_input) == "battery":
+        voris_say(get_battery())
+    elif detect_intent(user_input) == "uptime":
+        voris_say(get_uptime())
+    elif detect_intent(user_input) == "packages":
+        voris_say(get_installed_packages())
+    elif detect_intent(user_input) == "environment":
+        voris_say(get_environment_vars())
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
         result = recall(key)
