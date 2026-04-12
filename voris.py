@@ -133,6 +133,28 @@ def get_last_location():
                 return content.split(phrase)[1].strip().replace("?", "")
     return None
 
+def get_last_search_query():
+    for entry in reversed(conversation_history):
+        if entry["role"] == "voris":
+            continue
+        content = entry["content"].lower()
+        for phrase in ["search for", "look up", "find out about"]:
+            if phrase in content:
+                return content.split(phrase)[1].strip()
+        if len(content) > 10:
+            return content
+    return None
+
+def is_followup(text):
+    clean = text.lower().strip()
+    followup_phrases = [
+        "what about", "do i need", "what is the price", "how much",
+        "what does it cost", "is it compatible", "will it fit",
+        "what else", "tell me more", "and the", "what about the",
+        "how do i", "where do i", "can i", "should i"
+    ]
+    return any(phrase in clean for phrase in followup_phrases)
+
 load_memory()
 conversation_history = []
 name = recall("name")
@@ -297,6 +319,17 @@ while True:
             voris_say(searching())
             result = get_weather_tomorrow(location)
             voris_say(result)
+        elif is_followup(user_input):
+            last_query = get_last_search_query()
+            if last_query:
+                combined = f"{user_input} {last_query}"
+                voris_say(searching())
+                result = search(combined)
+                voris_say(result)
+            else:
+                voris_say(searching())
+                result = search(user_input)
+                voris_say(result)
         elif extracted:
             pass
         else:
