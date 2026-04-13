@@ -1,6 +1,7 @@
 import datetime
 import pytz
 import requests
+import re
 from dateutil import parser as dateparser
 from memory import remember, recall, save_memory, load_memory
 from search import search
@@ -60,7 +61,7 @@ def detect_intent(text):
         return "identity"
     if any(phrase in clean for phrase in ["how old am i", "what is my age", "what's my age"]):
         return "age"
-    if any(phrase in clean for phrase in ["what day is my birthday", "what day of the week is my birthday", "what day does my birthday fall"]):
+    if any(phrase in clean for phrase in ["what day is my birthday", "what day of the week is my birthday", "what day does my birthday fall", "what day was my birthday"]):
         return "birthday_day"
     if any(phrase in clean for phrase in ["when is my birthday", "what is my birthday", "whats my birthday", "when was i born", "what is my birth date"]):
         return "birthday"
@@ -231,10 +232,14 @@ while True:
             voris_say("I don't know your birthday yet.")
         else:
             try:
-                current_year = datetime.datetime.now().year
-                bday = dateparser.parse(f"{birthday} {current_year}")
+                year_match = re.search(r'\b(19|20)\d{2}\b', user_input)
+                year = int(year_match.group()) if year_match else datetime.datetime.now().year
+                bday = dateparser.parse(f"{birthday} {year}")
                 day_name = bday.strftime("%A")
-                voris_say(f"Your birthday falls on a {day_name} this year.")
+                if year == datetime.datetime.now().year:
+                    voris_say(f"Your birthday falls on a {day_name} this year.")
+                else:
+                    voris_say(f"Your birthday fell on a {day_name} in {year}.")
             except:
                 voris_say(searching())
                 result = search(f"what day is {birthday} {datetime.datetime.now().year}")
