@@ -301,7 +301,7 @@ while True:
         query = user_input.lower().replace("search for", "").replace("look up", "").replace("find out about", "").strip()
         cached = recall_knowledge(query)
         if cached:
-            voris_say(f"I already know this. {cached}")
+            voris_say(cached)
         else:
             voris_say(searching())
             result = search(query)
@@ -369,7 +369,7 @@ while True:
         key = normalize(user_input.lower().split("what is")[1].strip())
         cached = recall_knowledge(key)
         if cached:
-            voris_say(f"I already know this. {cached}")
+            voris_say(cached)
         else:
             result = recall(key)
             if result == "I don't know that yet.":
@@ -396,7 +396,7 @@ while True:
                 combined = f"{clean_followup} {last_query}"
                 cached = recall_knowledge(combined)
                 if cached:
-                    voris_say(f"I already know this. {cached}")
+                    voris_say(cached)
                 else:
                     voris_say(searching())
                     result = search(combined)
@@ -412,7 +412,7 @@ while True:
         else:
             cached = recall_knowledge(user_input)
             if cached:
-                voris_say(f"I already know this. {cached}")
+                voris_say(cached)
             else:
                 voris_say(searching())
                 result = search(user_input)
