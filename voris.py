@@ -72,12 +72,17 @@ def get_time_in_location(location):
 
 def calculate(expression):
     try:
+        import math as mathlib
         clean_expr = expression.lower()
         for word in ["what is", "calculate", "how much is", "whats", "what's"]:
             clean_expr = clean_expr.replace(word, "")
-        clean_expr = clean_expr.replace("x", "*").replace("times", "*").replace("divided by", "/").replace("plus", "+").replace("minus", "-").strip()
-        result = eval(clean_expr)
-        return str(result)
+        clean_expr = clean_expr.replace("x", "*").replace("times", "*").replace("divided by", "/").replace("plus", "+").replace("minus", "-")
+        clean_expr = clean_expr.replace("square root of", "mathlib.sqrt").replace("sqrt of", "mathlib.sqrt").replace("squared", "**2").replace("cubed", "**3")
+        clean_expr = clean_expr.strip()
+        result = eval(clean_expr, {"mathlib": mathlib, "__builtins__": {}})
+        if isinstance(result, float) and result.is_integer():
+            return str(int(result))
+        return str(round(result, 4))
     except:
         return None
 
