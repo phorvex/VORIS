@@ -33,5 +33,60 @@
     "content": "Linux ( LIN-uuks) is a family of open source Unix-like operating systems based on the Linux kernel, a kernel first released on 17 September 1991, by Linus Torvalds. Linux is typically packaged as a Linux distribution (a.k.a distro), which includes the kernel and supporting system software and libraries \u2013 most of which are provided by third parties \u2013 to create a complete operating system. Linux was originally designed as a clone of Unix and is released under the copyleft GPL license.There are many thousands of Linux distributions, many based directly or indirectly on other distributions; popular Linux distros include Debian, Fedora Linux, Linux Mint, Arch Linux, and Ubuntu, while commercial distributions include Red Hat Enterprise Linux, SUSE Linux Enterprise, and ChromeOS. Linux distributions are frequently used in server platforms. Many Linux distributions use the word \"Linux\" in their name, but the Free Software Foundation uses and recommends the name \"GNU/Linux\", to emphasize the use and importance of GNU software in many distributions. There is a controversy surrounding this. Other than the Linux kernel, key components that make up a distribution may include a display server (windowing system), a package manager, a bootloader, and a Unix shell.Linux is one of the most prominent examples of free and open-source software collaboration. The Linux kernel is considered by many to be the largest open source project. While originally developed for x86-based personal computers, it has since been ported to more platforms than any other operating system, and is used on a wide variety of devices including PCs, workstations, mainframes, and embedded systems. Linux is the predominant operating system for servers and is also used on all of the world's 500 fastest supercomputers. When combined with Android, which uses a Linux-based kernel and is designed for smartphones, they have the largest installed base of all general-purpose operating systems.",
     "source": "autolearn",
     "learned_at": "2026-04-13T12:13:24.181704"
+  },
+  "penetation testing": {
+    "content": "A penetration test, colloquially known as a pentest, is an authorized simulated cyberattack on a computer system, performed to evaluate the security of the system. The test is performed to identify weaknesses (or vulnerabilities), including the potential for unauthorized parties to gain access to the system's features and data, as well as strengths, enabling a full risk assessment to be completed.The process typically identifies the target systems and a particular goal, then reviews available information and undertakes various means to attain that goal. A penetration test target may be a white box (about which background and system information are provided in advance to the tester) or a black box (about which only basic information other than the company name is provided). A gray box penetration test is a combination of the two (where limited knowledge of the target is shared with the auditor). There are different types of penetration testing, depending on the goal of the organization which include: Network (external and internal), Wireless, Web Application, Social Engineering, and Remediation Verification. A penetration test can help identify a system's vulnerabilities to attack and estimate how vulnerable it is.The UK National Cyber Security Center describes penetration testing as: \"A method for gaining assurance in the security of an IT system by attempting to breach some or all of that system's security, using the same tools and techniques as an adversary might.\" Penetration tests are a component of a full security audit. For example, the Payment Card Industry Data Security Standard requires penetration testing on a regular schedule, and after system changes. Penetration testing also can support risk assessments as outlined in the NIST Risk Management Framework SP 800-53.Several standard frameworks and methodologies exist for conducting penetration tests. These include the Open Source Security Testing Methodology Manual (OSSTMM), the Penetration Testing Execution Standard (PTES), the NIST Special Publication 800-115, the Information System Security Assessment Framework (ISSAF) and the OWASP Testing Guide. CREST, a not for profit professional body for the technical cyber security industry, provides its CREST Defensible Penetration Test standard that provides the industry with guidance for commercially reasonable assurance activity when carrying out penetration tests.Since 2017 the terms Penetration Testing as a Service (PTaaS) has become popular. This involves using a platform to invoke a test as an alternative to using consultants.Even more recently a common pen testing tool called a flipper was used to hack the MGM casinos in 2023 by a group called Scattered Spiders showing the versatility and power of some of the tools of the trade.",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:07.847841"
+  },
+  "penetation testing examples": {
+    "content": "Penetrationtestingguide - Explained all details like pentest tools, types, process, certifications and most importantly sample test cases for penetrationtesting.",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:09.123723"
+  },
+  "penetation testing history": {
+    "content": "1 week ago -To better understand system weaknesses, the federal government and its contractors soon began organizing teams of penetrators, known as tiger teams, to use computer penetration to test system security. Deborah Russell and G. T. Gangemi Sr. stated that during the 1970s \"...'tiger teams' first emerged on the computer scene. Tiger teams were government and industry-sponsored teams of crackers who attempted to break down the defenses of computer systems in an effort to uncover, and eventually patch, security holes.\" A leading scholar on the history of computer security, Donald MacKenzie, similarly points out that, \"RAND had done some penetration studies (experiments in circumventing computer security controls) of early time-sharing systems on behalf of the government.\"",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:10.949744"
+  },
+  "how does penetation testing work": {
+    "content": "Apenetration test, colloquially known as a pentest, is an authorized simulated cyberattack on a computer system, performed to evaluate the security of the system. [1] Thetestis performed to identify weaknesses (or vulnerabilities), including the potential for unauthorized parties to gain access to the system's features and data, [2][3] as well as strengths, [4] enabling a full risk ...",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:12.064226"
+  },
+  "penetation testing applications": {
+    "content": "Burp Suite Professional The world's #1 web penetration testing toolkit. Burp Suite Community Edition The best manual tools to start web security testing. View all product editions ... Attack surface visibility Improve security posture, prioritize manual testing, free up time. CI-driven scanning More proactive security - find and fix vulnerabilities earlier. Application security testing See how our software enables the world to secure the web.",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:12.932858"
+  },
+  "penetation testing advantages and disadvantages": {
+    "content": "September 14, 2025 -In other words, the corporate network, application, devices, and/or people are attacked to check whether a cyber-attacker would be able to penetrate the organization. The tests reveal how deep an attacker could penetrate, and if the attack payload could be executed, i.e., data exfiltration, file or system encryption, infrastructure disablement or destruction.",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:13.915921"
+  },
+  "penetation testing tutorial": {
+    "content": "1 week ago -The test is performed to identify weaknesses (or vulnerabilities), including the potential for unauthorized parties to gain access to the system's features and data, as well as strengths, enabling a full risk assessment to be completed. The process typically identifies the target systems and a particular goal, then reviews available information and undertakes various means to attain that goal. A penetration ...",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:14.841753"
+  },
+  "penetation testing tools": {
+    "content": "Penetrationtestingtoolsare essential for performing successful pen tests because they simplify and enhance the process of identifying vulnerabilities. Manuallytestingsystems for weaknesses can be time-consuming and prone to errors. Thesetoolshelp automate tasks like scanning networks, finding security gaps, and exploiting vulnerabilities to test defenses. They provide penetration ...",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:17.334998"
+  },
+  "types of penetation testing": {
+    "content": "Learn more about penetrationtesting, including what it is, who performs penetrationtesting, and the varioustypes.",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:18.480268"
+  },
+  "penetation testing penetration": {
+    "content": "1 week ago -A penetration test, colloquially known as a pentest, isan authorized simulated cyberattack on a computer system, performed to evaluate the security of the system. The test is performed to identify weaknesses (or vulnerabilities), including the potential for unauthorized parties to gain access ...",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:20.637266"
+  },
+  "penetation testing system": {
+    "content": "A penetration test, colloquially known as a pentest, is an authorized simulated cyberattack on a computersystem, performed to evaluate the security of thesystem. [1] The test is performed to identify weaknesses (or vulnerabilities), including the potential for unauthorized parties to gain access to thesystem'sfeatures and data, [2][3] as well as strengths, [4] enabling a full risk ...",
+    "source": "autolearn",
+    "learned_at": "2026-04-13T16:08:21.742342"
   }
 }
