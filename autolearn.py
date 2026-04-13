@@ -39,12 +39,14 @@ def generate_followup_queries(topic, result, complexity):
         queries = [
             f"{topic} examples",
             f"{topic} uses",
+            f"how to use {topic}",
         ]
     elif complexity == "medium":
         queries = [
             f"{topic} examples",
             f"{topic} history",
             f"how does {topic} work",
+            f"{topic} tutorial",
         ]
     else:
         queries = [
@@ -53,11 +55,14 @@ def generate_followup_queries(topic, result, complexity):
             f"how does {topic} work",
             f"{topic} applications",
             f"{topic} advantages and disadvantages",
+            f"{topic} tutorial",
+            f"{topic} tools",
+            f"types of {topic}",
         ]
     for keyword in keywords[:2]:
         if keyword not in topic.lower():
             queries.append(f"{topic} {keyword}")
-    return queries[:8]
+    return queries
 
 def auto_learn(topic, update_callback=None):
     results_learned = 0
@@ -68,7 +73,7 @@ def auto_learn(topic, update_callback=None):
     if cached:
         initial_result = cached
         if update_callback:
-            update_callback(f"I already have some knowledge about {topic}. Expanding...")
+            update_callback(f"I have some knowledge about {topic}. Expanding...")
     else:
         initial_result = search(topic)
         if not initial_result:
@@ -85,21 +90,30 @@ def auto_learn(topic, update_callback=None):
     followup_queries = generate_followup_queries(topic, initial_result, complexity)
 
     for query in followup_queries:
-        cached = recall_knowledge(query)
-        if cached:
-            continue
+        import json
+        from memory import KNOWLEDGE_FILE
+        import os
+        try:
+            if os.path.exists(KNOWLEDGE_FILE):
+                with open(KNOWLEDGE_FILE, "r") as f:
+                    existing = json.load(f)
+                if query.lower() in existing:
+                    continue
+        except:
+            pass
+
         result = search(query)
         if result and len(result) > 50:
             learn(query, result, source="autolearn")
             results_learned += 1
             if update_callback:
-                update_callback(f"Learned about: {query}")
+                update_callback(f"Learned: {query}")
 
     summary = f"Done. I learned {results_learned} new things about {topic}."
     if complexity == "complex":
         summary += f" It's a complex topic — I went deep on it."
     elif complexity == "medium":
-        summary += f" I have a solid understanding now."
+        summary += f" Solid understanding now."
     else:
         summary += f" Simple topic — I know the essentials."
 

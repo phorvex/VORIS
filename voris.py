@@ -65,6 +65,8 @@ def detect_intent(text):
     clean = text.lower().replace("?", "").replace(".", "").replace("!", "").strip()
     if any(clean == phrase or clean.startswith(phrase + " ") for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
         return "greeting"
+    if any(phrase in clean for phrase in ["+", "-", "*", "/", "what is", "calculate", "how much is"]) and any(c.isdigit() for c in clean):
+        return "math"
     if any(phrase in clean for phrase in ["how are you", "you good", "you okay", "how do you feel"]):
         return "how_are_you"
     if any(phrase in clean for phrase in ["who am i", "what is my name", "what's my name"]):
@@ -194,6 +196,17 @@ print(startup_message)
 speak(startup_message)
 
 TIMEZONE = pytz.timezone("America/New_York")
+
+def calculate(expression):
+    try:
+        clean_expr = expression.lower()
+        for word in ["what is", "calculate", "how much is", "whats", "="]:
+            clean_expr = clean_expr.replace(word, "")
+        clean_expr = clean_expr.replace("x", "*").replace("times", "*").replace("divided by", "/").replace("plus", "+").replace("minus", "-").strip()
+        result = eval(clean_expr)
+        return str(result)
+    except:
+        return None
 
 while True:
     user_input = input("You: ")
@@ -377,6 +390,15 @@ while True:
     elif detect_intent(user_input) == "delete_file":
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
+    elif detect_intent(user_input) == "math":
+        result = calculate(user_input)
+        if result:
+            voris_say(result)
+        else:
+            voris_say(searching())
+            searched = search(user_input)
+            learn(user_input, searched, source="search")
+            voris_say(searched)
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
         cached = recall_knowledge(key)
