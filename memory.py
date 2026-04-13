@@ -33,10 +33,25 @@ def learn(topic, content, source="search"):
     save_knowledge()
 
 def recall_knowledge(topic):
-    if topic in knowledge:
-        return knowledge[topic]["content"]
+    topic_lower = topic.lower()
+    # exact match first
+    if topic_lower in knowledge:
+        return knowledge[topic_lower]["content"]
+    # check if topic is contained in any stored key
     for key in knowledge:
-        if topic.lower() in key.lower():
+        if topic_lower in key.lower():
+            return knowledge[key]["content"]
+    # check if any stored key is contained in topic
+    for key in knowledge:
+        if key.lower() in topic_lower:
+            return knowledge[key]["content"]
+    # check for significant word overlap
+    topic_words = set(topic_lower.split())
+    for key in knowledge:
+        key_words = set(key.lower().split())
+        overlap = topic_words & key_words
+        significant = {w for w in overlap if len(w) > 3}
+        if len(significant) >= 2:
             return knowledge[key]["content"]
     return None
 
