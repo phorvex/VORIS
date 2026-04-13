@@ -8,7 +8,7 @@ from personality import startup, greeting, searching, remember_confirm, not_foun
 from learn import extract_facts
 from system import get_system_summary, get_running_processes, get_network_info, get_disk_partitions, get_battery, get_uptime, get_installed_packages, get_environment_vars
 from tasks import run_command, create_file, list_directory, read_file, delete_file
-from voice import speak
+from voice import speak, enable_voice, disable_voice, toggle_voice
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -100,6 +100,12 @@ def detect_intent(text):
         return "packages"
     if any(phrase in clean for phrase in ["environment", "env vars", "show environment"]):
         return "environment"
+    if any(phrase in clean for phrase in ["enable voice", "turn on voice", "voice on"]):
+        return "voice_on"
+    if any(phrase in clean for phrase in ["disable voice", "turn off voice", "voice off"]):
+        return "voice_off"
+    if any(phrase in clean for phrase in ["toggle voice", "switch voice"]):
+        return "voice_toggle"
     if any(phrase in clean for phrase in ["run ", "execute ", "cat ", "ls", "pwd", "whoami"]):
         return "run_command"
     if any(phrase in clean for phrase in ["list files", "list directory", "show files", "what files", "what's in"]):
@@ -191,6 +197,15 @@ while True:
         name = recall("name")
         voris_say(shutdown(name))
         break
+    elif detect_intent(user_input) == "voice_on":
+        result = enable_voice()
+        print(f"VORIS: {result}")
+    elif detect_intent(user_input) == "voice_off":
+        result = disable_voice()
+        print(f"VORIS: {result}")
+    elif detect_intent(user_input) == "voice_toggle":
+        result = toggle_voice()
+        print(f"VORIS: {result}")
     elif detect_intent(user_input) == "greeting":
         name = recall("name")
         voris_say(greeting(name))
