@@ -3,7 +3,7 @@ import pytz
 import requests
 import re
 from dateutil import parser as dateparser
-from memory import remember, recall, save_memory, load_memory
+from memory import remember, recall, save_memory, load_memory, learn, recall_knowledge, load_knowledge, get_all_memory, get_all_knowledge
 from search import search
 from personality import startup, greeting, searching, remember_confirm, not_found, shutdown, how_are_you
 from learn import extract_facts
@@ -51,6 +51,15 @@ def get_current_location():
     except:
         return "I couldn't determine your current location."
 
+def smart_search(query):
+    cached = recall_knowledge(query)
+    if cached:
+        return cached, True
+    result = search(query)
+    if result and result != "I couldn't find anything on that.":
+        learn(query, result, source="search")
+    return result, False
+
 def detect_intent(text):
     clean = text.lower().replace("?", "").replace(".", "").replace("!", "").strip()
     if any(clean == phrase or clean.startswith(phrase + " ") for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
@@ -85,6 +94,8 @@ def detect_intent(text):
         return "search"
     if any(phrase in clean for phrase in ["what did i say", "what was my last message", "repeat that"]):
         return "history"
+    if any(phrase in clean for phrase in ["what do you know", "show knowledge", "what have you learned"]):
+        return "show_knowledge"
     if any(phrase in clean for phrase in ["system status", "how is the system", "system info", "what system are you on", "check system", "system report"]):
         return "system_status"
     if any(phrase in clean for phrase in ["what is running", "running processes", "show processes", "active processes"]):
@@ -166,6 +177,7 @@ def is_followup(text):
     return any(phrase in clean for phrase in followup_phrases)
 
 load_memory()
+load_knowledge()
 conversation_history = []
 name = recall("name")
 
@@ -287,9 +299,22 @@ while True:
         voris_say(result)
     elif detect_intent(user_input) == "search":
         query = user_input.lower().replace("search for", "").replace("look up", "").replace("find out about", "").strip()
-        voris_say(searching())
-        result = search(query)
-        voris_say(result)
+        cached = recall_knowledge(query)
+        if cached:
+            voris_say(f"I already know this. {cached}")
+        else:
+            voris_say(searching())
+            result = search(query)
+            learn(query, result, source="search")
+            voris_say(result)
+    elif detect_intent(user_input) == "show_knowledge":
+        knowledge_data = get_all_knowledge()
+        if knowledge_data:
+            count = len(knowledge_data)
+            topics = ", ".join(list(knowledge_data.keys())[:5])
+            voris_say(f"I have learned {count} things so far. Recent topics include: {topics}.")
+        else:
+            voris_say("I haven't learned anything from searches yet.")
     elif detect_intent(user_input) == "history":
         if len(conversation_history) > 1:
             last = conversation_history[-2]["content"]
@@ -342,13 +367,18 @@ while True:
         voris_say(delete_file(path))
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
-        result = recall(key)
-        if result == "I don't know that yet.":
-            voris_say(not_found(key))
-            searched = search(user_input)
-            voris_say(searched)
+        cached = recall_knowledge(key)
+        if cached:
+            voris_say(f"I already know this. {cached}")
         else:
-            voris_say(result)
+            result = recall(key)
+            if result == "I don't know that yet.":
+                voris_say(not_found(key))
+                searched = search(user_input)
+                learn(key, searched, source="search")
+                voris_say(searched)
+            else:
+                voris_say(result)
     else:
         last_intent = get_last_intent()
         if last_intent == "weather" and any(word in user_input.lower() for word in ["tomorrow", "tonight", "weekend", "later"]):
@@ -364,16 +394,27 @@ while True:
                 for f in filler:
                     clean_followup = clean_followup.replace(f, "").strip()
                 combined = f"{clean_followup} {last_query}"
-                voris_say(searching())
-                result = search(combined)
-                voris_say(result)
+                cached = recall_knowledge(combined)
+                if cached:
+                    voris_say(f"I already know this. {cached}")
+                else:
+                    voris_say(searching())
+                    result = search(combined)
+                    learn(combined, result, source="search")
+                    voris_say(result)
             else:
                 voris_say(searching())
                 result = search(user_input)
+                learn(user_input, result, source="search")
                 voris_say(result)
         elif extracted:
             pass
         else:
-            voris_say(searching())
-            result = search(user_input)
-            voris_say(result)
+            cached = recall_knowledge(user_input)
+            if cached:
+                voris_say(f"I already know this. {cached}")
+            else:
+                voris_say(searching())
+                result = search(user_input)
+                learn(user_input, result, source="search")
+                voris_say(result)
