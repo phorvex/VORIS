@@ -77,7 +77,9 @@ def calculate(expression):
         for word in ["what is", "calculate", "how much is", "whats", "what's"]:
             clean_expr = clean_expr.replace(word, "")
         clean_expr = clean_expr.replace("x", "*").replace("times", "*").replace("divided by", "/").replace("plus", "+").replace("minus", "-")
-        clean_expr = clean_expr.replace("square root of", "mathlib.sqrt").replace("sqrt of", "mathlib.sqrt").replace("squared", "**2").replace("cubed", "**3")
+        clean_expr = clean_expr.replace("square root of", "mathlib.sqrt(").replace("sqrt of", "mathlib.sqrt(").replace("squared", "**2").replace("cubed", "**3")
+        if "mathlib.sqrt(" in clean_expr and not clean_expr.strip().endswith(")"):
+            clean_expr = clean_expr.strip() + ")"
         clean_expr = clean_expr.strip()
         result = eval(clean_expr, {"mathlib": mathlib, "__builtins__": {}})
         if isinstance(result, float) and result.is_integer():
@@ -162,7 +164,7 @@ def detect_intent(text):
         return "correction"
     if any(phrase in clean for phrase in ["tell me about", "tell me more about", "tell me more"]):
         return "tell_me"
-    if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus"]):
+    if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus", "square root", "squared", "cubed", "sqrt"]):
         return "math"
     return None
 
