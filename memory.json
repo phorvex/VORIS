@@ -1,1 +1,38 @@
-{"name": "Phillippi", "age": "19", "goal": "to build VORIS", "location": "lakeland florida", "birthday": "november 3rd 2006", "preference": "coding"}
+{
+  "name": {
+    "value": "Phillippi",
+    "source": "user",
+    "confidence": 1.0,
+    "learned_at": "unknown"
+  },
+  "age": {
+    "value": "19",
+    "source": "user",
+    "confidence": 1.0,
+    "learned_at": "unknown"
+  },
+  "goal": {
+    "value": "to build VORIS",
+    "source": "user",
+    "confidence": 1.0,
+    "learned_at": "unknown"
+  },
+  "location": {
+    "value": "lakeland florida",
+    "source": "user",
+    "confidence": 1.0,
+    "learned_at": "unknown"
+  },
+  "birthday": {
+    "value": "november 3rd 2006",
+    "source": "user",
+    "confidence": 1.0,
+    "learned_at": "unknown"
+  },
+  "preference": {
+    "value": "coding",
+    "source": "user",
+    "confidence": 1.0,
+    "learned_at": "unknown"
+  }
+}
