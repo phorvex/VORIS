@@ -10,6 +10,7 @@ from learn import extract_facts
 from system import get_system_summary, get_running_processes, get_network_info, get_disk_partitions, get_battery, get_uptime, get_installed_packages, get_environment_vars
 from tasks import run_command, create_file, list_directory, read_file, delete_file
 from voice import speak, enable_voice, disable_voice, toggle_voice
+from autolearn import auto_learn
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -70,6 +71,8 @@ def detect_intent(text):
         return "identity"
     if any(phrase in clean for phrase in ["how old am i", "what is my age", "what's my age"]):
         return "age"
+    if any(phrase in clean for phrase in ["learn about", "study", "research", "go learn", "teach yourself"]):
+        return "autolearn"
     if any(phrase in clean for phrase in ["what day is my birthday", "what day of the week is my birthday", "what day does my birthday fall", "what day was my birthday"]):
         return "birthday_day"
     if any(phrase in clean for phrase in ["when is my birthday", "what is my birthday", "whats my birthday", "when was i born", "what is my birth date"]):
@@ -256,6 +259,15 @@ while True:
                 voris_say(searching())
                 result = search(f"what day is {birthday} {datetime.datetime.now().year}")
                 voris_say(result)
+    elif detect_intent(user_input) == "autolearn":
+        topic = user_input.lower()
+        for phrase in ["learn about", "study", "research", "go learn", "teach yourself about", "teach yourself"]:
+            if phrase in topic:
+                topic = topic.split(phrase)[1].strip()
+                break
+        voris_say(f"Learning about {topic} now. Give me a moment.")
+        summary = auto_learn(topic, update_callback=lambda msg: print(f"VORIS: {msg}"))
+        voris_say(summary)
     elif detect_intent(user_input) == "current_location":
         voris_say(searching())
         location = get_current_location()
