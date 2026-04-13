@@ -3,7 +3,9 @@ import pytz
 import requests
 import re
 from dateutil import parser as dateparser
-from memory import remember, recall, save_memory, load_memory, learn, recall_knowledge, load_knowledge, get_all_memory, get_all_knowledge
+from timezonefinder import TimezoneFinder
+from geopy.geocoders import Nominatim
+from memory import remember, recall, save_memory, load_memory, learn, recall_knowledge, recall_knowledge_exact, load_knowledge, get_all_memory, get_all_knowledge
 from search import search
 from personality import startup, greeting, searching, remember_confirm, not_found, shutdown, how_are_you
 from learn import extract_facts
@@ -52,28 +54,44 @@ def get_current_location():
     except:
         return "I couldn't determine your current location."
 
-def smart_search(query):
-    cached = recall_knowledge(query)
-    if cached:
-        return cached, True
-    result = search(query)
-    if result and result != "I couldn't find anything on that.":
-        learn(query, result, source="search")
-    return result, False
+def get_time_in_location(location):
+    try:
+        geolocator = Nominatim(user_agent="voris")
+        loc = geolocator.geocode(location, timeout=10)
+        if not loc:
+            return None
+        tf = TimezoneFinder()
+        tz_name = tf.timezone_at(lng=loc.longitude, lat=loc.latitude)
+        if not tz_name:
+            return None
+        tz = pytz.timezone(tz_name)
+        local_time = datetime.datetime.now(tz).strftime("%I:%M %p")
+        return f"It is {local_time} in {location}."
+    except:
+        return None
+
+def calculate(expression):
+    try:
+        clean_expr = expression.lower()
+        for word in ["what is", "calculate", "how much is", "whats", "what's"]:
+            clean_expr = clean_expr.replace(word, "")
+        clean_expr = clean_expr.replace("x", "*").replace("times", "*").replace("divided by", "/").replace("plus", "+").replace("minus", "-").strip()
+        result = eval(clean_expr)
+        return str(result)
+    except:
+        return None
 
 def detect_intent(text):
     clean = text.lower().replace("?", "").replace(".", "").replace("!", "").strip()
     if any(clean == phrase or clean.startswith(phrase + " ") for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
         return "greeting"
-    if any(phrase in clean for phrase in ["+", "-", "*", "/", "what is", "calculate", "how much is"]) and any(c.isdigit() for c in clean):
-        return "math"
     if any(phrase in clean for phrase in ["how are you", "you good", "you okay", "how do you feel"]):
         return "how_are_you"
     if any(phrase in clean for phrase in ["who am i", "what is my name", "what's my name"]):
         return "identity"
     if any(phrase in clean for phrase in ["how old am i", "what is my age", "what's my age"]):
         return "age"
-    if any(phrase in clean for phrase in ["learn about", "study", "research", "go learn", "teach yourself"]):
+    if any(phrase in clean for phrase in ["learn about", "learn more about", "study", "research", "go learn", "teach yourself"]):
         return "autolearn"
     if any(phrase in clean for phrase in ["what day is my birthday", "what day of the week is my birthday", "what day does my birthday fall", "what day was my birthday"]):
         return "birthday_day"
@@ -83,6 +101,8 @@ def detect_intent(text):
         return "current_location"
     if any(phrase in clean for phrase in ["where do i live", "what is my location", "whatis my location", "where do i stay"]):
         return "home_location"
+    if any(phrase in clean for phrase in ["what time is it in", "time in", "current time in"]):
+        return "time_in_location"
     if any(phrase in clean for phrase in ["what time is it", "what's the time", "current time", "what is the time"]):
         return "time"
     if any(phrase in clean for phrase in ["what is the date tomorrow", "tomorrow's date", "what day is tomorrow"]):
@@ -101,13 +121,13 @@ def detect_intent(text):
         return "history"
     if any(phrase in clean for phrase in ["what do you know", "show knowledge", "what have you learned"]):
         return "show_knowledge"
-    if any(phrase in clean for phrase in ["system status", "how is the system", "system info", "what system are you on", "check system", "system report"]):
+    if any(phrase in clean for phrase in ["system status", "system stats", "how is the system", "system info", "what system are you on", "check system", "system report"]):
         return "system_status"
     if any(phrase in clean for phrase in ["what is running", "running processes", "show processes", "active processes"]):
         return "processes"
     if any(phrase in clean for phrase in ["network info", "network status", "what network", "show network", "ip address"]):
         return "network"
-    if any(phrase in clean for phrase in ["show partitions", "disk partitions", "storage info", "what drives"]):
+    if any(phrase in clean for phrase in ["show partitions", "disk partitions", "storage info", "what drives", "show drives", "disk info"]):
         return "partitions"
     if any(phrase in clean for phrase in ["battery", "battery status", "how much battery"]):
         return "battery"
@@ -125,7 +145,7 @@ def detect_intent(text):
         return "voice_toggle"
     if any(phrase in clean for phrase in ["run ", "execute ", "cat ", "ls", "pwd", "whoami"]):
         return "run_command"
-    if any(phrase in clean for phrase in ["list files", "list directory", "show files", "what files", "what's in"]):
+    if any(phrase in clean for phrase in ["list files", "list directory", "show files", "show filesystems", "what files", "what's in"]):
         return "list_dir"
     if any(phrase in clean for phrase in ["create file", "make file", "new file"]):
         return "create_file"
@@ -133,6 +153,12 @@ def detect_intent(text):
         return "read_file"
     if any(phrase in clean for phrase in ["delete file", "remove file"]):
         return "delete_file"
+    if any(phrase in clean for phrase in ["that is incorrect", "that's wrong", "that's incorrect", "you're wrong", "wrong answer", "that is wrong"]):
+        return "correction"
+    if any(phrase in clean for phrase in ["tell me about", "tell me more about", "tell me more"]):
+        return "tell_me"
+    if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus"]):
+        return "math"
     return None
 
 def is_shutdown(text):
@@ -171,12 +197,22 @@ def get_last_search_query():
             return content
     return None
 
+def get_last_topic():
+    for entry in reversed(conversation_history):
+        if entry["role"] == "voris":
+            continue
+        content = entry["content"].lower()
+        for phrase in ["learn about", "tell me about", "what is", "search for", "look up"]:
+            if phrase in content:
+                return content.split(phrase)[1].strip().replace("?", "").replace(".", "")
+    return None
+
 def is_followup(text):
     clean = text.lower().strip()
     followup_phrases = [
         "what about", "do i need", "what is the price", "how much",
         "what does it cost", "is it compatible", "will it fit",
-        "what else", "tell me more", "and the", "what about the",
+        "what else", "and the", "what about the",
         "how do i", "where do i", "can i", "should i"
     ]
     return any(phrase in clean for phrase in followup_phrases)
@@ -196,17 +232,6 @@ print(startup_message)
 speak(startup_message)
 
 TIMEZONE = pytz.timezone("America/New_York")
-
-def calculate(expression):
-    try:
-        clean_expr = expression.lower()
-        for word in ["what is", "calculate", "how much is", "whats", "="]:
-            clean_expr = clean_expr.replace(word, "")
-        clean_expr = clean_expr.replace("x", "*").replace("times", "*").replace("divided by", "/").replace("plus", "+").replace("minus", "-").strip()
-        result = eval(clean_expr)
-        return str(result)
-    except:
-        return None
 
 while True:
     user_input = input("You: ")
@@ -274,7 +299,7 @@ while True:
                 voris_say(result)
     elif detect_intent(user_input) == "autolearn":
         topic = user_input.lower()
-        for phrase in ["learn about", "study", "research", "go learn", "teach yourself about", "teach yourself"]:
+        for phrase in ["learn more about", "learn about", "study", "research", "go learn", "teach yourself about", "teach yourself"]:
             if phrase in topic:
                 topic = topic.split(phrase)[1].strip()
                 break
@@ -291,6 +316,17 @@ while True:
             voris_say("I don't know where you live yet.")
         else:
             voris_say(f"You live in {location}.")
+    elif detect_intent(user_input) == "time_in_location":
+        loc_text = user_input.lower()
+        for phrase in ["what time is it in", "time in", "current time in"]:
+            if phrase in loc_text:
+                loc_text = loc_text.split(phrase)[1].strip().replace("?", "")
+                break
+        result = get_time_in_location(loc_text)
+        if result:
+            voris_say(result)
+        else:
+            voris_say(f"I couldn't get the time for {loc_text}.")
     elif detect_intent(user_input) == "time":
         now = datetime.datetime.now(TIMEZONE).strftime("%I:%M %p")
         voris_say(f"It is {now}.")
@@ -322,6 +358,49 @@ while True:
         voris_say(searching())
         result = get_weather(location)
         voris_say(result)
+    elif detect_intent(user_input) == "math":
+        result = calculate(user_input)
+        if result:
+            voris_say(result)
+        else:
+            voris_say(searching())
+            searched = search(user_input)
+            learn(user_input, searched, source="search")
+            voris_say(searched)
+    elif detect_intent(user_input) == "correction":
+        last_voris = None
+        for entry in reversed(conversation_history):
+            if entry["role"] == "voris":
+                last_voris = entry["content"]
+                break
+        voris_say("I'll note that. What's the correct answer?")
+        correction = input("You: ")
+        conversation_history.append({"role": "user", "content": correction})
+        last_query = get_last_search_query()
+        if last_query:
+            learn(last_query, correction, source="user_correction")
+        voris_say("Got it. I've updated what I know.")
+    elif detect_intent(user_input) == "tell_me":
+        topic = user_input.lower()
+        for phrase in ["tell me more about", "tell me about", "tell me more"]:
+            if phrase in topic:
+                topic = topic.split(phrase)[1].strip().replace("?", "")
+                break
+        if not topic or topic == user_input.lower():
+            topic = get_last_topic() or ""
+        if topic:
+            cached = recall_knowledge_exact(topic)
+            if not cached:
+                cached = recall_knowledge(topic)
+            if cached:
+                voris_say(cached)
+            else:
+                voris_say(searching())
+                result = search(topic)
+                learn(topic, result, source="search")
+                voris_say(result)
+        else:
+            voris_say("What would you like to know more about?")
     elif detect_intent(user_input) == "search":
         query = user_input.lower().replace("search for", "").replace("look up", "").replace("find out about", "").strip()
         cached = recall_knowledge(query)
@@ -376,7 +455,7 @@ while True:
         voris_say(result)
     elif detect_intent(user_input) == "list_dir":
         path = "."
-        for phrase in ["what's in", "list files in", "list directory", "show files in"]:
+        for phrase in ["what's in", "list files in", "list directory", "show files in", "show filesystems"]:
             if phrase in user_input.lower():
                 path = user_input.lower().split(phrase)[1].strip() or "."
                 break
@@ -390,18 +469,11 @@ while True:
     elif detect_intent(user_input) == "delete_file":
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
-    elif detect_intent(user_input) == "math":
-        result = calculate(user_input)
-        if result:
-            voris_say(result)
-        else:
-            voris_say(searching())
-            searched = search(user_input)
-            learn(user_input, searched, source="search")
-            voris_say(searched)
     elif user_input.lower().startswith("what is"):
         key = normalize(user_input.lower().split("what is")[1].strip())
-        cached = recall_knowledge(key)
+        cached = recall_knowledge_exact(key)
+        if not cached:
+            cached = recall_knowledge(key)
         if cached:
             voris_say(cached)
         else:

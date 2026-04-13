@@ -25,7 +25,7 @@ def recall(key):
     return "I don't know that yet."
 
 def learn(topic, content, source="search"):
-    knowledge[topic] = {
+    knowledge[topic.lower()] = {
         "content": content,
         "source": source,
         "learned_at": datetime.datetime.now().isoformat()
@@ -33,26 +33,36 @@ def learn(topic, content, source="search"):
     save_knowledge()
 
 def recall_knowledge(topic):
-    topic_lower = topic.lower()
-    # exact match first
+    topic_lower = topic.lower().strip()
     if topic_lower in knowledge:
         return knowledge[topic_lower]["content"]
-    # check if topic is contained in any stored key
     for key in knowledge:
-        if topic_lower in key.lower():
+        if topic_lower == key.lower():
             return knowledge[key]["content"]
-    # check if any stored key is contained in topic
     for key in knowledge:
-        if key.lower() in topic_lower:
+        if topic_lower in key.lower() and len(topic_lower) > 4:
             return knowledge[key]["content"]
-    # check for significant word overlap
+    for key in knowledge:
+        if key.lower() in topic_lower and len(key) > 4:
+            return knowledge[key]["content"]
     topic_words = set(topic_lower.split())
+    best_match = None
+    best_overlap = 0
     for key in knowledge:
         key_words = set(key.lower().split())
         overlap = topic_words & key_words
-        significant = {w for w in overlap if len(w) > 3}
-        if len(significant) >= 2:
-            return knowledge[key]["content"]
+        significant = {w for w in overlap if len(w) > 4}
+        if len(significant) >= 2 and len(significant) > best_overlap:
+            best_overlap = len(significant)
+            best_match = key
+    if best_match:
+        return knowledge[best_match]["content"]
+    return None
+
+def recall_knowledge_exact(topic):
+    topic_lower = topic.lower().strip()
+    if topic_lower in knowledge:
+        return knowledge[topic_lower]["content"]
     return None
 
 def save_memory():
