@@ -477,12 +477,32 @@ while True:
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
     elif user_input.lower().startswith("what is"):
-        math_result = calculate(user_input)
-        if math_result:
-            voris_say(math_result)
+        has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
+        if has_math:
+            math_result = calculate(user_input)
+            if math_result:
+                voris_say(math_result)
+            else:
+                voris_say(searching())
+                searched = search(user_input)
+                learn(user_input, searched, source="search")
+                voris_say(searched)
         else:
             key = normalize(user_input.lower().split("what is")[1].strip())
             cached = recall_knowledge_exact(key)
+            if not cached:
+                cached = recall_knowledge(key)
+            if cached:
+                voris_say(cached)
+            else:
+                result = recall(key)
+                if result == "I don't know that yet.":
+                    voris_say(not_found(key))
+                    searched = search(user_input)
+                    learn(key, searched, source="search")
+                    voris_say(searched)
+                else:
+                    voris_say(result)
             if not cached:
                 cached = recall_knowledge(key)
             if cached:
