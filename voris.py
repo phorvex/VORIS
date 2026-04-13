@@ -503,19 +503,6 @@ while True:
                     voris_say(searched)
                 else:
                     voris_say(result)
-            if not cached:
-                cached = recall_knowledge(key)
-            if cached:
-                voris_say(cached)
-            else:
-                result = recall(key)
-                if result == "I don't know that yet.":
-                    voris_say(not_found(key))
-                    searched = search(user_input)
-                    learn(key, searched, source="search")
-                    voris_say(searched)
-                else:
-                    voris_say(result)
     else:
         last_intent = get_last_intent()
         if last_intent == "weather" and any(word in user_input.lower() for word in ["tomorrow", "tonight", "weekend", "later"]):
