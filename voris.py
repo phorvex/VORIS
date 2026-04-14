@@ -73,18 +73,17 @@ def get_time_in_location(location):
 def calculate(expression):
     try:
         import math as mathlib
+        import re
         clean_expr = expression.lower()
         for word in ["what is", "calculate", "how much is", "whats", "what's"]:
             clean_expr = clean_expr.replace(word, "")
-        clean_expr = clean_expr.replace("x", "*").replace("times", "*").replace("divided by", "/").replace("plus", "+").replace("minus", "-")
-        clean_expr = clean_expr.replace("square root of", "mathlib.sqrt(").replace("sqrt of", "mathlib.sqrt(").replace("squared", "**2").replace("cubed", "**3")
+        clean_expr = clean_expr.replace("square root of", "mathlib.sqrt(").replace("sqrt of", "mathlib.sqrt(")
+        clean_expr = clean_expr.replace("squared", "**2").replace("cubed", "**3")
+        clean_expr = clean_expr.replace("times", "*").replace("divided by", "/").replace("plus", "+").replace("minus", "-")
         if "mathlib.sqrt(" in clean_expr and not clean_expr.strip().endswith(")"):
             clean_expr = clean_expr.strip() + ")"
-        import re
-        clean_expr = re.sub(r'[a-zA-Z]+(?!lib\.sqrt)', '', clean_expr)
-        clean_expr = clean_expr.replace("mathlib.sqrt", "mathlib.sqrt")
-        clean_expr = ' '.join(clean_expr.split())
-        clean_expr = clean_expr.strip()
+        clean_expr = re.sub(r'\bthe\b|\ba\b|\ban\b|\bof\b', '', clean_expr)
+        clean_expr = ' '.join(clean_expr.split()).strip()
         result = eval(clean_expr, {"mathlib": mathlib, "__builtins__": {}})
         if isinstance(result, float) and result.is_integer():
             return str(int(result))
