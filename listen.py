@@ -1,4 +1,8 @@
 import speech_recognition as sr
+import os
+import sys
+
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 mic_enabled = False
 recognizer = sr.Recognizer()
@@ -20,13 +24,13 @@ def listen():
     if not mic_enabled:
         return None
     try:
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        old_stderr = os.dup(2)
+        os.dup2(devnull, 2)
+        os.close(devnull)
         with sr.Microphone() as source:
-            recognizer.adjust_for_ambient_noise(source, duration=0.5)
-            print("Listening...")
-            audio = recognizer.listen(source, timeout=5, phrase_time_limit=10)
-            text = recognizer.recognize_google(audio)
-            print(f"You said: {text}")
-            return text
+            os.dup2(old_stderr, 2)
+            os.close(old_stderr)
     except sr.WaitTimeoutError:
         return None
     except sr.UnknownValueError:
