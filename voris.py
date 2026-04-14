@@ -13,6 +13,7 @@ from system import get_system_summary, get_running_processes, get_network_info, 
 from tasks import run_command, create_file, list_directory, read_file, delete_file
 from voice import speak, enable_voice, disable_voice, toggle_voice
 from autolearn import auto_learn
+from listen import enable_mic, disable_mic, is_mic_on, listen
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -147,6 +148,10 @@ def detect_intent(text):
         return "packages"
     if any(phrase in clean for phrase in ["environment", "env vars", "show environment"]):
         return "environment"
+    if any(phrase in clean for phrase in ["enable mic", "turn on mic", "mic on", "start listening"]):
+        return "mic_on"
+    if any(phrase in clean for phrase in ["disable mic", "turn off mic", "mic off", "stop listening"]):
+        return "mic_off"
     if any(phrase in clean for phrase in ["enable voice", "turn on voice", "voice on"]):
         return "voice_on"
     if any(phrase in clean for phrase in ["disable voice", "turn off voice", "voice off"]):
@@ -244,7 +249,14 @@ speak(startup_message)
 TIMEZONE = pytz.timezone("America/New_York")
 
 while True:
-    user_input = input("You: ")
+    if is_mic_on():
+        spoken = listen()
+        if spoken:
+            user_input = spoken
+        else:
+            user_input = input("You: ")
+    else:
+        user_input = input("You: ")
     conversation_history.append({"role": "user", "content": user_input})
     extracted = extract_facts(user_input, remember, recall, save_memory)
     if extracted:
@@ -261,6 +273,14 @@ while True:
         name = recall("name")
         voris_say(shutdown(name))
         break
+    elif detect_intent(user_input) == "mic_on":
+        result = enable_mic()
+        print(f"VORIS: {result}")
+        speak(result)
+    elif detect_intent(user_input) == "mic_off":
+        result = disable_mic()
+        print(f"VORIS: {result}")
+        speak(result)
     elif detect_intent(user_input) == "voice_on":
         result = enable_voice()
         print(f"VORIS: {result}")
