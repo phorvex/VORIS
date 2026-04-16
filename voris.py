@@ -391,7 +391,7 @@ while True:
         voris_say(searching())
         result = get_weather(location)
         voris_say(result)
-        elif detect_intent(user_input) == "convert":
+    elif detect_intent(user_input) == "convert":
         result = convert(user_input)
         if result:
             voris_say(result)
