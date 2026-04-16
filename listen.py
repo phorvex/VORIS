@@ -24,13 +24,7 @@ def listen():
     if not mic_enabled:
         return None
     try:
-        devnull = os.open(os.devnull, os.O_WRONLY)
-        old_stderr = os.dup(2)
-        os.dup2(devnull, 2)
-        os.close(devnull)
         with sr.Microphone() as source:
-            os.dup2(old_stderr, 2)
-            os.close(old_stderr)
     except sr.WaitTimeoutError:
         return None
     except sr.UnknownValueError:
