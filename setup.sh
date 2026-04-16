@@ -4,7 +4,7 @@ echo "Setting up VORIS..."
 
 # System dependencies
 echo "Installing system dependencies..."
-sudo apt install -y mpg123 python3-venv python3-pip portaudio19-dev python3-pyaudio libasound2-dev
+sudo apt install -y mpg123 python3-venv python3-pip portaudio19-dev python3-pyaudio libasound2-dev zstd
 
 # Virtual environment
 if [ ! -d ".venv" ]; then
@@ -15,22 +15,23 @@ fi
 # Activate and install Python packages
 echo "Installing Python packages..."
 source .venv/bin/activate
-
-# Install pyaudio separately first using system headers
 pip install --upgrade pip
 pip install pyaudio
-
-# Install remaining packages
 pip install -r requirements.txt
 
-# Install Ollama if not present
+# Install Ollama if not present and enough RAM available
+TOTAL_RAM=$(free -m | awk '/^Mem:/{print $2}')
 if ! command -v ollama &> /dev/null; then
-    echo "Installing Ollama..."
-    curl -fsSL https://ollama.com/install.sh | sh
-    echo "Pulling VORIS coding model..."
-    ollama serve > /dev/null 2>&1 &
-    sleep 3
-    ollama pull qwen2.5-coder:3b
+    if [ "$TOTAL_RAM" -gt 3000 ]; then
+        echo "Installing Ollama..."
+        curl -fsSL https://ollama.com/install.sh | sh
+        echo "Pulling VORIS coding model..."
+        ollama serve > /dev/null 2>&1 &
+        sleep 3
+        ollama pull qwen2.5-coder:3b
+    else
+        echo "Not enough RAM for Ollama on this device. Coding brain will use search fallback."
+    fi
 else
     echo "Ollama already installed."
 fi
