@@ -14,6 +14,7 @@ from tasks import run_command, create_file, list_directory, read_file, delete_fi
 from voice import speak, enable_voice, disable_voice, toggle_voice
 from autolearn import auto_learn
 from listen import enable_mic, disable_mic, is_mic_on, listen
+from convert import convert
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -172,6 +173,8 @@ def detect_intent(text):
         return "correction"
     if any(phrase in clean for phrase in ["tell me about", "tell me more about", "tell me more"]):
         return "tell_me"
+    if any(phrase in clean for phrase in ["convert", "to kilometers", "to miles", "to celsius", "to fahrenheit", "to pounds", "to kilograms", "to liters", "to gallons", "to meters", "to feet"]) and any(c.isdigit() for c in clean):
+        return "convert"
     if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus", "square root", "squared", "cubed", "sqrt"]):
         return "math"
     return None
@@ -388,6 +391,15 @@ while True:
         voris_say(searching())
         result = get_weather(location)
         voris_say(result)
+        elif detect_intent(user_input) == "convert":
+        result = convert(user_input)
+        if result:
+            voris_say(result)
+        else:
+            voris_say(searching())
+            searched = search(user_input)
+            learn(user_input, searched, source="search")
+            voris_say(searched)
     elif detect_intent(user_input) == "math":
         result = calculate(user_input)
         if result:
