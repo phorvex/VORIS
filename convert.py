@@ -22,6 +22,8 @@ CONVERSIONS = {
     ("fahrenheit", "celsius"): lambda x: (x - 32) * 5/9,
     ("celsius", "kelvin"): lambda x: x + 273.15,
     ("kelvin", "celsius"): lambda x: x - 273.15,
+    ("kelvin", "fahrenheit"): lambda x: (x - 273.15) * 9/5 + 32,
+    ("fahrenheit", "kelvin"): lambda x: (x - 32) * 5/9 + 273.15,
     # Speed
     ("mph", "kph"): lambda x: x * 1.60934,
     ("kph", "mph"): lambda x: x / 1.60934,
