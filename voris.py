@@ -98,7 +98,7 @@ def detect_intent(text):
     clean = text.lower().replace("?", "").replace(".", "").replace("!", "").strip()
     if any(clean == phrase or clean.startswith(phrase + " ") for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
         return "greeting"
-    if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a"]):
+    if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "write a python", "write a bash", "write a javascript", "write a java", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a", "write me a"]):
         return "code"
     if any(phrase in clean for phrase in ["how are you", "you good", "you okay", "how do you feel"]):
         return "how_are_you"
@@ -178,7 +178,7 @@ def detect_intent(text):
         return "tell_me"
     if any(phrase in clean for phrase in ["convert", "to kilometers", "to miles", "to celsius", "to fahrenheit", "to pounds", "to kilograms", "to liters", "to gallons", "to meters", "to feet"]) and any(c.isdigit() for c in clean):
         return "convert"
-    if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a"]):
+    if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "write a python", "write a bash", "write a javascript", "write a java", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a", "write me a"]):
         return "code"
     if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus", "square root", "squared", "cubed", "sqrt"]):
         return "math"
