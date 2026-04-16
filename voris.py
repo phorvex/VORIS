@@ -15,6 +15,7 @@ from voice import speak, enable_voice, disable_voice, toggle_voice
 from autolearn import auto_learn
 from listen import enable_mic, disable_mic, is_mic_on, listen
 from convert import convert
+from code_brain import ask_code_brain, is_code_question, is_ollama_available
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -175,6 +176,8 @@ def detect_intent(text):
         return "tell_me"
     if any(phrase in clean for phrase in ["convert", "to kilometers", "to miles", "to celsius", "to fahrenheit", "to pounds", "to kilograms", "to liters", "to gallons", "to meters", "to feet"]) and any(c.isdigit() for c in clean):
         return "convert"
+    if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a"]):
+        return "code"
     if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus", "square root", "squared", "cubed", "sqrt"]):
         return "math"
     return None
@@ -511,6 +514,18 @@ while True:
     elif detect_intent(user_input) == "delete_file":
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
+    elif detect_intent(user_input) == "code":
+        if is_ollama_available():
+            voris_say("On it. Give me a moment to think through this.")
+            result = ask_code_brain(user_input)
+            if result:
+                print(f"VORIS: {result}")
+                conversation_history.append({"role": "voris", "content": result})
+                learn(user_input, result, source="code_brain")
+            else:
+                voris_say("My coding brain ran into an issue. Try again.")
+        else:
+            voris_say("My coding brain is offline on this machine. Ask me when I'm running on a more powerful system.")
     elif user_input.lower().startswith("what is"):
         has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
         if has_math:
