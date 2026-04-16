@@ -59,7 +59,7 @@ def extract_code_blocks(text):
     pattern = r'```(?:\w+)?\n(.*?)```'
     blocks = re.findall(pattern, text, re.DOTALL)
     if blocks:
-        return "\n\n".join(blocks)
+        return blocks[0]
     return text
 
 def ask_code_brain(prompt):
