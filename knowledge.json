@@ -128,5 +128,10 @@
     "content": "However, the Fahrenheit scale is still used as the official temperature scale in a number of countries, including the United States (as well as its unincorporated territories), the Bahamas, Belize, the Cayman Islands, and a few others. Example: convert 300 K to \u00b0F: 300 K = 300 \u00d7 9/5 - 459.67 = 80.33 \u00b0F",
     "source": "search",
     "learned_at": "2026-04-16T21:17:23.331271"
+  },
+  "write a python funcction that reverses a string": {
+    "content": "Certainly! Below is a Python function that reverses a given string:\n\n```python\ndef reverse_string(s):\n    \"\"\"\n    Reverses the input string s.\n\n    Parameters:\n    s (str): The string to be reversed.\n\n    Returns:\n    str: The reversed string.\n    \"\"\"\n    # Use slicing to reverse the string\n    return s[::-1]\n\n# Example usage:\noriginal_string = \"Hello, World!\"\nreversed_string = reverse_string(original_string)\nprint(reversed_string)  # Output: !dlroW ,olleH\n```\n\nThis function takes a single parameter `s`, which is the string you want to reverse. It uses Python's slicing feature `s[::-1]` to create a new string that is the reverse of `s`. The function then returns this reversed string.",
+    "source": "code_brain",
+    "learned_at": "2026-04-16T22:03:07.087764"
   }
 }
