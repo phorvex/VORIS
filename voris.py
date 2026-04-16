@@ -15,7 +15,7 @@ from voice import speak, enable_voice, disable_voice, toggle_voice
 from autolearn import auto_learn
 from listen import enable_mic, disable_mic, is_mic_on, listen
 from convert import convert
-from code_brain import ask_code_brain, is_code_question, is_ollama_available
+from code_brain import ask_code_brain, is_code_question, is_ollama_available, save_code, run_code, serve_html
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -100,6 +100,12 @@ def detect_intent(text):
         return "greeting"
     if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "write a python", "write a bash", "write a javascript", "write a java", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a", "write me a"]):
         return "code"
+    if any(phrase in clean for phrase in ["save the code", "save it", "save that", "save to", "save the file"]):
+        return "save_code"
+    if any(phrase in clean for phrase in ["run the code", "run it", "execute the code", "run that", "run the file"]):
+        return "run_code"
+    if any(phrase in clean for phrase in ["serve it", "host it", "serve the html", "host the site", "start the server"]):
+        return "serve_html"
     if any(phrase in clean for phrase in ["how are you", "you good", "you okay", "how do you feel"]):
         return "how_are_you"
     if any(phrase in clean for phrase in ["who am i", "what is my name", "what's my name"]):
@@ -178,8 +184,6 @@ def detect_intent(text):
         return "tell_me"
     if any(phrase in clean for phrase in ["convert", "to kilometers", "to miles", "to celsius", "to fahrenheit", "to pounds", "to kilograms", "to liters", "to gallons", "to meters", "to feet"]) and any(c.isdigit() for c in clean):
         return "convert"
-    if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "write a python", "write a bash", "write a javascript", "write a java", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a", "write me a"]):
-        return "code"
     if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus", "square root", "squared", "cubed", "sqrt"]):
         return "math"
     return None
@@ -396,6 +400,34 @@ while True:
         voris_say(searching())
         result = get_weather(location)
         voris_say(result)
+    elif detect_intent(user_input) == "save_code":
+        filepath = None
+        for phrase in ["save to ", "save it to ", "save that to "]:
+            if phrase in user_input.lower():
+                filepath = user_input.lower().split(phrase)[1].strip()
+                break
+        result = save_code(filepath)
+        voris_say(result)
+    elif detect_intent(user_input) == "run_code":
+        voris_say("Running it now.")
+        result = run_code()
+        print(f"VORIS: {result}")
+        conversation_history.append({"role": "voris", "content": result})
+    elif detect_intent(user_input) == "serve_html":
+        result = serve_html()
+        voris_say(result)
+    elif detect_intent(user_input) == "code":
+        if is_ollama_available():
+            voris_say("On it. Give me a moment to think through this.")
+            result = ask_code_brain(user_input)
+            if result:
+                print(f"VORIS: {result}")
+                conversation_history.append({"role": "voris", "content": result})
+                learn(user_input, result, source="code_brain")
+            else:
+                voris_say("My coding brain ran into an issue. Try again.")
+        else:
+            voris_say("My coding brain is offline on this machine. Ask me when I'm running on a more powerful system.")
     elif detect_intent(user_input) == "convert":
         result = convert(user_input)
         if result:
@@ -516,18 +548,6 @@ while True:
     elif detect_intent(user_input) == "delete_file":
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
-    elif detect_intent(user_input) == "code":
-        if is_ollama_available():
-            voris_say("On it. Give me a moment to think through this.")
-            result = ask_code_brain(user_input)
-            if result:
-                print(f"VORIS: {result}")
-                conversation_history.append({"role": "voris", "content": result})
-                learn(user_input, result, source="code_brain")
-            else:
-                voris_say("My coding brain ran into an issue. Try again.")
-        else:
-            voris_say("My coding brain is offline on this machine. Ask me when I'm running on a more powerful system.")
     elif user_input.lower().startswith("what is"):
         has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
         if has_math:
