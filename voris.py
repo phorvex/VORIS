@@ -13,7 +13,7 @@ from system import get_system_summary, get_running_processes, get_network_info, 
 from tasks import run_command, create_file, list_directory, read_file, delete_file
 from voice import speak, enable_voice, disable_voice, toggle_voice
 from autolearn import auto_learn
-from listen import enable_mic, disable_mic, is_mic_on, listen
+from listen import enable_mic, disable_mic, is_mic_on, listen, enable_wake_word, disable_wake_word, is_wake_word_on
 from convert import convert
 from code_brain import ask_code_brain, is_code_question, is_ollama_available, save_code, run_code, serve_html
 from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
@@ -110,12 +110,6 @@ def detect_intent(text):
         return "serve_html"
     if any(phrase in clean for phrase in ["take a note", "add a note", "note that", "remember to", "write down"]):
         return "add_note"
-    if any(phrase in clean for phrase in ["what's the news", "whats the news", "news today", "top news", "latest news", "give me the news", "news briefing", "morning briefing"]):
-        return "news_brief"
-    if any(phrase in clean for phrase in ["news about", "news on", "show me news", "get me news"]):
-        return "news_topic"
-    if any(phrase in clean for phrase in ["news sources", "what news sources", "available news"]):
-        return "news_sources"
     if any(phrase in clean for phrase in ["read my notes", "show my notes", "what are my notes", "my notes"]):
         return "get_notes"
     if any(phrase in clean for phrase in ["clear my notes", "delete all notes", "wipe my notes"]):
@@ -124,6 +118,16 @@ def detect_intent(text):
         return "add_reminder"
     if any(phrase in clean for phrase in ["my reminders", "show reminders", "what are my reminders"]):
         return "get_reminders"
+    if any(phrase in clean for phrase in ["what's the news", "whats the news", "news today", "top news", "latest news", "give me the news", "news briefing", "morning briefing"]):
+        return "news_brief"
+    if any(phrase in clean for phrase in ["news about", "news on", "show me news", "get me news"]):
+        return "news_topic"
+    if any(phrase in clean for phrase in ["news sources", "what news sources", "available news"]):
+        return "news_sources"
+    if any(phrase in clean for phrase in ["enable wake word", "wake word on", "hey voris mode", "passive listen"]):
+        return "wake_on"
+    if any(phrase in clean for phrase in ["disable wake word", "wake word off", "stop passive"]):
+        return "wake_off"
     if any(phrase in clean for phrase in ["how are you", "you good", "you okay", "how do you feel"]):
         return "how_are_you"
     if any(phrase in clean for phrase in ["who am i", "what is my name", "what's my name"]):
@@ -324,6 +328,17 @@ while True:
     elif detect_intent(user_input) == "voice_toggle":
         result = toggle_voice()
         print(f"VORIS: {result}")
+    elif detect_intent(user_input) == "wake_on":
+        def wake_triggered():
+            global mic_enabled
+            mic_enabled = True
+            print("VORIS: I heard you. What do you need?")
+            speak("I heard you. What do you need?")
+        result = enable_wake_word(wake_triggered)
+        voris_say(result)
+    elif detect_intent(user_input) == "wake_off":
+        result = disable_wake_word()
+        voris_say(result)
     elif detect_intent(user_input) == "greeting":
         name = recall("name")
         voris_say(greeting(name))
@@ -484,6 +499,21 @@ while True:
             voris_say("How many minutes should I remind you in?")
     elif detect_intent(user_input) == "get_reminders":
         voris_say(get_reminders())
+    elif detect_intent(user_input) == "news_brief":
+        voris_say("Getting today's top headlines.")
+        result = get_news_brief()
+        voris_say(result)
+    elif detect_intent(user_input) == "news_topic":
+        topic = user_input.lower()
+        for phrase in ["news about", "news on", "show me news about", "get me news on", "show me news", "get me news"]:
+            if phrase in topic:
+                topic = topic.split(phrase)[1].strip()
+                break
+        voris_say(f"Getting news on {topic}.")
+        result = get_news(category=topic)
+        voris_say(result)
+    elif detect_intent(user_input) == "news_sources":
+        voris_say(list_sources())
     elif detect_intent(user_input) == "convert":
         result = convert(user_input)
         if result:
@@ -604,21 +634,6 @@ while True:
     elif detect_intent(user_input) == "delete_file":
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
-    elif detect_intent(user_input) == "news_brief":
-        voris_say("Getting today's top headlines.")
-        result = get_news_brief()
-        voris_say(result)
-    elif detect_intent(user_input) == "news_topic":
-        topic = user_input.lower()
-        for phrase in ["news about", "news on", "show me news about", "get me news on", "show me news", "get me news"]:
-            if phrase in topic:
-                topic = topic.split(phrase)[1].strip()
-                break
-        voris_say(f"Getting news on {topic}.")
-        result = get_news(category=topic)
-        voris_say(result)
-    elif detect_intent(user_input) == "news_sources":
-        voris_say(list_sources())
     elif user_input.lower().startswith("what is"):
         has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
         if has_math:
