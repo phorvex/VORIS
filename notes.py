@@ -97,5 +97,8 @@ def get_reminders():
     for r in reminders:
         due = datetime.datetime.fromisoformat(r["due"])
         mins_left = int((due - now).total_seconds() / 60)
-        result += f"- {r['text']} (in {mins_left} minute{'s' if mins_left != 1 else ''})\n"
+        if mins_left <= 0:
+            result += f"- {r['text']} (due now)\n"
+        else:
+            result += f"- {r['text']} (in {mins_left} minute{'s' if mins_left != 1 else ''})\n"
     return result.strip()
