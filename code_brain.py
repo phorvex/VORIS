@@ -103,7 +103,8 @@ def ask_code_brain(prompt):
             last_code["filename"] = None
             return full_response
         return None
-    except:
+    except Exception as e:
+        print(f"Code brain error: {e}")
         return None
 
 def save_code(filepath=None):
