@@ -5,7 +5,24 @@ import subprocess
 import re
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
-CODE_MODEL = "qwen2.5-coder:3b"
+def get_best_model():
+    try:
+        response = requests.get("http://127.0.0.1:11434/api/tags", timeout=2)
+        if response.status_code == 200:
+            models = [m["name"] for m in response.json().get("models", [])]
+            if "qwen2.5-coder:latest" in models:
+                return "qwen2.5-coder:latest"
+            if "qwen2.5-coder:7b" in models:
+                return "qwen2.5-coder:7b"
+            if "qwen2.5-coder:3b" in models:
+                return "qwen2.5-coder:3b"
+            if models:
+                return models[0]
+    except:
+        pass
+    return "qwen2.5-coder:3b"
+
+CODE_MODEL = get_best_model()
 
 VORIS_CODE_PROMPT = """You are VORIS's coding brain. You are precise, efficient, and direct.
 You write clean code, explain it clearly, and never refuse a coding request.
