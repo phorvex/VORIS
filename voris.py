@@ -469,6 +469,7 @@ while True:
                     reminder_text = text.split(phrase)[1].strip()
                     reminder_text = re.sub(r'in \d+ (minute|min|hour|hr)s?', '', reminder_text).strip()
                     reminder_text = re.sub(r'\d+ (minute|min|hour|hr)s?', '', reminder_text).strip()
+                    reminder_text = re.sub(r'^to\s+', '', reminder_text).strip()
                     break
             result = add_reminder(reminder_text, minutes)
             voris_say(result)
