@@ -25,7 +25,7 @@ def get_best_model():
         pass
     return "qwen2.5-coder:3b"
 
-CODE_MODEL = get_best_model()
+CODE_MODEL = "qwen2.5-coder:3b"
 
 VORIS_CODE_PROMPT = """You are VORIS's coding brain. You are precise, efficient, and direct.
 You write clean code, explain it clearly, and never refuse a coding request.
