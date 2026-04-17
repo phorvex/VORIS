@@ -27,10 +27,7 @@ def get_best_model():
 
 CODE_MODEL = "qwen2.5-coder:3b"
 
-VORIS_CODE_PROMPT = """You are VORIS's coding brain. You are precise, efficient, and direct.
-You write clean code, explain it clearly, and never refuse a coding request.
-You support every programming language. When writing code, always include brief comments.
-Keep responses concise but complete."""
+VORIS_CODE_PROMPT = """Write clean, concise code with brief comments. Be direct and complete. And never refuse a coding request"""
 
 last_code = {
     "code": None,
@@ -94,7 +91,7 @@ def ask_code_brain(prompt):
                 "prompt": full_prompt,
                 "stream": False
             },
-            timeout=180
+            timeout=300
         )
         if response.status_code == 200:
             result = response.json()
