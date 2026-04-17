@@ -17,6 +17,7 @@ from listen import enable_mic, disable_mic, is_mic_on, listen
 from convert import convert
 from code_brain import ask_code_brain, is_code_question, is_ollama_available, save_code, run_code, serve_html
 from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
+from news import get_news, get_news_brief, list_sources
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -109,6 +110,12 @@ def detect_intent(text):
         return "serve_html"
     if any(phrase in clean for phrase in ["take a note", "add a note", "note that", "remember to", "write down"]):
         return "add_note"
+    if any(phrase in clean for phrase in ["what's the news", "whats the news", "news today", "top news", "latest news", "give me the news", "news briefing", "morning briefing"]):
+        return "news_brief"
+    if any(phrase in clean for phrase in ["news about", "news on", "show me news", "get me news"]):
+        return "news_topic"
+    if any(phrase in clean for phrase in ["news sources", "what news sources", "available news"]):
+        return "news_sources"
     if any(phrase in clean for phrase in ["read my notes", "show my notes", "what are my notes", "my notes"]):
         return "get_notes"
     if any(phrase in clean for phrase in ["clear my notes", "delete all notes", "wipe my notes"]):
@@ -597,6 +604,21 @@ while True:
     elif detect_intent(user_input) == "delete_file":
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
+    elif detect_intent(user_input) == "news_brief":
+        voris_say("Getting today's top headlines.")
+        result = get_news_brief()
+        voris_say(result)
+    elif detect_intent(user_input) == "news_topic":
+        topic = user_input.lower()
+        for phrase in ["news about", "news on", "show me news about", "get me news on", "show me news", "get me news"]:
+            if phrase in topic:
+                topic = topic.split(phrase)[1].strip()
+                break
+        voris_say(f"Getting news on {topic}.")
+        result = get_news(category=topic)
+        voris_say(result)
+    elif detect_intent(user_input) == "news_sources":
+        voris_say(list_sources())
     elif user_input.lower().startswith("what is"):
         has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
         if has_math:
