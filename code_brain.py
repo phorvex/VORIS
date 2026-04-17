@@ -13,9 +13,9 @@ def get_best_model():
         response = requests.get("http://127.0.0.1:11434/api/tags", timeout=2)
         if response.status_code == 200:
             models = [m["name"] for m in response.json().get("models", [])]
-            if available_gb > 5 and "qwen2.5-coder:latest" in models:
+            if available_gb > 3.5 and "qwen2.5-coder:latest" in models:
                 return "qwen2.5-coder:latest"
-            if available_gb > 5 and "qwen2.5-coder:7b" in models:
+            if available_gb > 3.5 and "qwen2.5-coder:7b" in models:
                 return "qwen2.5-coder:7b"
             if "qwen2.5-coder:3b" in models:
                 return "qwen2.5-coder:3b"
