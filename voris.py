@@ -16,6 +16,7 @@ from autolearn import auto_learn
 from listen import enable_mic, disable_mic, is_mic_on, listen
 from convert import convert
 from code_brain import ask_code_brain, is_code_question, is_ollama_available, save_code, run_code, serve_html
+from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -106,6 +107,16 @@ def detect_intent(text):
         return "run_code"
     if any(phrase in clean for phrase in ["serve it", "host it", "serve the html", "host the site", "start the server"]):
         return "serve_html"
+    if any(phrase in clean for phrase in ["take a note", "add a note", "note that", "remember to", "write down"]):
+        return "add_note"
+    if any(phrase in clean for phrase in ["read my notes", "show my notes", "what are my notes", "my notes"]):
+        return "get_notes"
+    if any(phrase in clean for phrase in ["clear my notes", "delete all notes", "wipe my notes"]):
+        return "clear_notes"
+    if any(phrase in clean for phrase in ["remind me", "set a reminder", "set reminder"]):
+        return "add_reminder"
+    if any(phrase in clean for phrase in ["my reminders", "show reminders", "what are my reminders"]):
+        return "get_reminders"
     if any(phrase in clean for phrase in ["how are you", "you good", "you okay", "how do you feel"]):
         return "how_are_you"
     if any(phrase in clean for phrase in ["who am i", "what is my name", "what's my name"]):
@@ -274,6 +285,10 @@ while True:
     if extracted:
         voris_say("Noted.")
 
+    due_reminders = check_reminders()
+    for reminder in due_reminders:
+        voris_say(f"Reminder: {reminder}")
+
     if user_input.lower().startswith("remember"):
         parts = user_input.split("remember")[1].strip()
         key, value = parts.split(" is ")
@@ -428,6 +443,39 @@ while True:
                 voris_say("My coding brain ran into an issue. Try again.")
         else:
             voris_say("My coding brain is offline on this machine. Ask me when I'm running on a more powerful system.")
+    elif detect_intent(user_input) == "add_note":
+        text = user_input.lower()
+        for phrase in ["take a note", "add a note", "note that", "remember to", "write down"]:
+            if phrase in text:
+                text = text.split(phrase)[1].strip()
+                break
+        result = add_note(text)
+        voris_say(result)
+    elif detect_intent(user_input) == "get_notes":
+        voris_say(get_notes())
+    elif detect_intent(user_input) == "clear_notes":
+        result = clear_notes()
+        voris_say(result)
+    elif detect_intent(user_input) == "add_reminder":
+        text = user_input.lower()
+        mins_match = re.search(r'(\d+)\s*(minute|min|hour|hr)', text)
+        if mins_match:
+            amount = int(mins_match.group(1))
+            unit = mins_match.group(2)
+            minutes = amount * 60 if "hour" in unit or "hr" in unit else amount
+            reminder_text = text
+            for phrase in ["remind me to", "remind me in", "remind me"]:
+                if phrase in text:
+                    reminder_text = text.split(phrase)[1].strip()
+                    reminder_text = re.sub(r'in \d+ (minute|min|hour|hr)s?', '', reminder_text).strip()
+                    reminder_text = re.sub(r'\d+ (minute|min|hour|hr)s?', '', reminder_text).strip()
+                    break
+            result = add_reminder(reminder_text, minutes)
+            voris_say(result)
+        else:
+            voris_say("How many minutes should I remind you in?")
+    elif detect_intent(user_input) == "get_reminders":
+        voris_say(get_reminders())
     elif detect_intent(user_input) == "convert":
         result = convert(user_input)
         if result:
