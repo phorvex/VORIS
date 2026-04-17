@@ -5,6 +5,7 @@ import subprocess
 import re
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
+
 def get_best_model():
     try:
         import psutil
