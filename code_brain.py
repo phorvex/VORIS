@@ -91,7 +91,7 @@ def ask_code_brain(prompt):
                 "prompt": full_prompt,
                 "stream": False
             },
-            timeout=120
+            timeout=180
         )
         if response.status_code == 200:
             result = response.json()
