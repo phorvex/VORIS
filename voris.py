@@ -18,6 +18,7 @@ from convert import convert
 from code_brain import ask_code_brain, is_code_question, is_ollama_available, save_code, run_code, serve_html
 from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
 from news import get_news, get_news_brief, list_sources
+from face import set_state, start_face, stop_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -272,10 +273,13 @@ conversation_history = []
 name = recall("name")
 
 def voris_say(message):
+    set_state(STATE_SPEAKING, message[:50])
     print(f"VORIS: {message}")
     conversation_history.append({"role": "voris", "content": message})
     speak(message)
+    set_state(STATE_IDLE)
 
+start_face()
 startup_message = startup(name)
 print(startup_message)
 speak(startup_message)
@@ -455,6 +459,7 @@ while True:
         voris_say(result)
     elif detect_intent(user_input) == "code":
         if is_ollama_available():
+            set_state(STATE_THINKING)
             voris_say("On it. Give me a moment to think through this.")
             result = ask_code_brain(user_input)
             if result:
