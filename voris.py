@@ -18,7 +18,7 @@ from convert import convert
 from code_brain import ask_code_brain, is_code_question, is_ollama_available, save_code, run_code, serve_html
 from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
 from news import get_news, get_news_brief, list_sources
-from face import set_state, start_face, stop_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
+from face import set_state, start_face, stop_face, get_input_from_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -286,15 +286,16 @@ speak(startup_message)
 
 TIMEZONE = pytz.timezone("America/New_York")
 
+from face import set_state, start_face, stop_face, get_input_from_face, STATE_IDLE, STATE_SPEAKING, STATE_THIN
 while True:
     if is_mic_on():
         spoken = listen()
         if spoken:
             user_input = spoken
         else:
-            user_input = input("You: ")
+            user_input = get_input_from_face()
     else:
-        user_input = input("You: ")
+        user_input = get_input_from_face()KING, STATE_LISTENING
     conversation_history.append({"role": "user", "content": user_input})
     extracted = extract_facts(user_input, remember, recall, save_memory)
     if extracted:
