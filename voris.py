@@ -295,7 +295,7 @@ while True:
         else:
             user_input = get_input_from_face()
     else:
-        user_input = get_input_from_face()KING, STATE_LISTENING
+        user_input = get_input_from_face()
     conversation_history.append({"role": "user", "content": user_input})
     extracted = extract_facts(user_input, remember, recall, save_memory)
     if extracted:
