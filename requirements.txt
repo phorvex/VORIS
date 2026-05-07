@@ -2,6 +2,7 @@ aiohappyeyeballs==2.6.1
 aiohttp==3.13.5
 aiosignal==1.4.0
 attrs==26.1.0
+audioop-lts==0.2.2
 certifi==2026.2.25
 cffi==2.0.0
 charset-normalizer==3.4.7
@@ -27,6 +28,8 @@ pytz==2026.1.post1
 requests==2.33.1
 six==1.17.0
 SpeechRecognition==3.16.0
+standard-aifc==3.13.0
+standard-chunk==3.13.0
 tabulate==0.10.0
 timezonefinder==8.2.2
 typing_extensions==4.15.0
