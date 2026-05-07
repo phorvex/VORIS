@@ -5,7 +5,18 @@ import subprocess
 VOICE = "en-US-AriaNeural"
 voice_enabled = False
 
+def fix_pronunciation(text):
+    replacements = {
+        "Phillippi": "Fee-LEE-pee",
+        "phillippi": "Fee-LEE-pee",
+        "PHILLIPPI": "Fee-LEE-pee",
+    }
+    for word, phonetic in replacements.items():
+        text = text.replace(word, phonetic)
+    return text
+
 async def speak_async(text):
+    text = fix_pronunciation(text)
     try:
         communicate = edge_tts.Communicate(text, VOICE)
         await communicate.save("/tmp/voris_speech.mp3")
