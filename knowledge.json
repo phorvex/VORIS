@@ -143,5 +143,30 @@
     "content": "Certainly! Below is a Python script that prints the first 10 Fibonacci numbers:\n\n```python\n# Function to generate and print the first 10 Fibonacci numbers\ndef print_fibonacci(n):\n    # Initialize the first two Fibonacci numbers\n    fib1, fib2 = 0, 1\n    for _ in range(n):\n        print(fib1)\n        # Update the next two Fibonacci numbers\n        fib1, fib2 = fib2, fib1 + fib2\n\n# Call the function to print the first 10 Fibonacci numbers\nprint_fibonacci(10)\n```\n\n### Explanation:\n- The script defines a function `print_fibonacci` that takes an integer `n` as an argument.\n- It initializes the first two Fibonacci numbers, `fib1` and `fib2`, to 0 and 1, respectively.\n- A loop runs `n` times, printing the current value of `fib1`.\n- After each print, it updates `fib1` and `fib2` to the next two numbers in the sequence by assigning `fib2` to `fib1` and `fib1 + fib2` to `fib2`.\n- Finally, it calls `print_fibonacci(10)` to print the first 10 Fibonacci numbers.",
     "source": "code_brain",
     "learned_at": "2026-04-16T22:32:24.213966"
+  },
+  "freigh handlers inc": {
+    "content": "FreightHandlers(FHI) is a provider of transportation and distribution services for the grocery industry. It offers inventory and warehouse management, unloading, yard hostling, dry vans, labor disruption, and other services.OUT-OF-SERVICE: Carrierisunder any type of out-of-service order andisnot authorized to operate. AUTHORIZED FOR { Passenger, Property, HHG }: This will list the specific operating authorities the carrier (or broker)isallowed to operate.As pioneers in the professional unloading industry, we continually deliver innovative services throughout the supply chain that improve efficiencies, reduce costs and speed time to market. Or more simply: Hard Work. Done Right. The spirit of \u201cfinding a better way\u201d continues to evolve at FHI.Freight Handlers, Inc. providesproduct handling and logisticsservices to retailers, distributors, manufacturers, and carriers in the grocery industry in the United States.FreightHandlers,Incis a Transportation/Trucking/Railroad company located in 310 N. Judd Prkwy N.E., Fuquay Varina, North Carolina 27526, US with 1,082 employees.Find 537 listings related toFreightHandlersIncin Lakeland on YP.com. See reviews, photos, directions, phone numbers and more forFreightHandlersInclocations in Lakeland, FL.",
+    "source": "search",
+    "learned_at": "2026-05-15T14:45:37.348221"
+  },
+  "freight handlers inc": {
+    "content": "Lynden Transportisa trusted leader for shippingfreightto, from and within Alaska since 1954. Enjoy excellent benefits including competitive pay ...",
+    "source": "search",
+    "learned_at": "2026-05-15T14:46:06.715026"
+  },
+  "where can i get bushlite apple in lakeland": {
+    "content": "Tracy Wagner of Tracy and Company beauty salon onFloridaAvenue runs a wig and hat ministry for cancer patients. Very knowledgeable and linked to local needs.",
+    "source": "search",
+    "learned_at": "2026-05-16T14:34:59.150052"
+  },
+  "wall paint made of": {
+    "content": "Aug 20, 2025 \u00b7The key ingredients that make up paint includepigments, binders, solvents, and additives. Each of these components plays a vital role in determining the color, texture, durability, and performance of paint.",
+    "source": "search",
+    "learned_at": "2026-05-16T22:51:00.393519"
+  },
+  "disks": {
+    "content": "February 25, 2026 -Disk storage (also sometimes called drive storage) isa data storage mechanism based on a rotating disk. The recording employs various electronic, magnetic, optical, or mechanical changes to the disk's surface layer.",
+    "source": "search",
+    "learned_at": "2026-05-16T22:51:44.429816"
   }
 }

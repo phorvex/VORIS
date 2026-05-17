@@ -19,6 +19,8 @@ from code_brain import ask_code_brain, is_code_question, is_ollama_available, sa
 from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
 from news import get_news, get_news_brief, list_sources
 from face import set_state, start_face, stop_face, get_input_from_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
+from wilio_commm import send_sms, alert,  critical_alert, call_admin, start_server, set_handler
+
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
     key = key.replace("?", "").replace(".", "").replace("!", "")
@@ -208,7 +210,12 @@ def detect_intent(text):
         return "convert"
     if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus", "square root", "squared", "cubed", "sqrt"]):
         return "math"
+    if any(phrase in clean for phrase in ["send me a text", "text me", "send sms", "send alert"]):
+        return "send sms"
+    if any(phrase in clean for phrase in ["call me", "call my phone", "phone me"]):
+        return "call me"
     return None
+
 
 def is_shutdown(text):
     clean = text.lower().strip()
@@ -279,6 +286,32 @@ def voris_say(message):
     set_state(STATE_IDLE)
 
 start_face()
+
+def handle_remote_input(text):
+    text_lower = text.lower().strip()
+    if is_shutdown(text_lower):
+        return "Shutting down is not allowed remotely."
+    intent = detect_intent(text)
+    if intent == "time":
+        now = datetime.datetime.now(TIMEZONE).strftime("%I:%M %p")
+        return f"It is {now}."
+    if intent == "weather" or intent == "weather_here":
+        location = recall("location") or "Lakeland Florida"
+        return get_weather(location)
+    if intent == "news_brief":
+        return get_news_brief()
+    if intent == "system_status":
+        return get_system_summary()
+    if intent == "get_notes":
+        return get_notes()
+    if intent == "get_reminders":
+        return get_reminders()
+    result = search(text)
+    return result
+
+set_handler(handle_remote_input)
+start_server(handle_remote_input, port=5000)
+
 startup_message = startup(name)
 print(startup_message)
 speak(startup_message)
@@ -639,6 +672,21 @@ while True:
     elif detect_intent(user_input) == "delete_file":
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
+
+    elif detect_intent(user_input) == "send_sms":
+        text = user_input.lower()
+        for phrase in ["send me a text", "text me", "send sms", "send alert"]:
+            if phrase in text:
+                msg = text.split(phrase)[1].strip() or "VORIS checking in."
+                break
+        else:
+                msg = "VORIS checking in."
+                result = send_sms(msg)
+                voris_say("Message sent." if result else "Couldnt send the message.")
+    elif detect_intent(user_input) == "call me":
+        voris_say("calling you now.")
+        call_admin("This is VORIS. You asked me to call you.")
+
     elif user_input.lower().startswith("what is"):
         has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
         if has_math:
