@@ -168,5 +168,20 @@
     "content": "February 25, 2026 -Disk storage (also sometimes called drive storage) isa data storage mechanism based on a rotating disk. The recording employs various electronic, magnetic, optical, or mechanical changes to the disk's surface layer.",
     "source": "search",
     "learned_at": "2026-05-16T22:51:44.429816"
+  },
+  "text me": {
+    "content": "Text messaging, or texting, is the act of composing and sending electronic messages, typically consisting of alphabetic and numeric characters, between two or more users of mobile phones, tablet computers, smartwatches, desktops/laptops, or another type of compatible computer. Text messages may be sent over a cellular network or may also be sent via satellite or Internet connection.The term originally referred to messages sent using the Short Message Service (SMS) on mobile devices. It has grown beyond alphanumeric text to include multimedia messages using the Multimedia Messaging Service (MMS) and Rich Communication Services (RCS), which can contain digital images, videos, and sound content, as well as ideograms known as emoji (happy faces, sad faces, and other icons), and on various instant messaging apps. Text messaging has been an extremely popular medium of communication since the turn of the century and has also influenced changes in society.",
+    "source": "search",
+    "learned_at": "2026-05-17T15:07:21.271543"
+  },
+  "send sms": {
+    "content": "Send is a village and civil parish in the Guildford borough of the English county of Surrey. The name is thought to mean \"sandy place\" and sand was extracted at various periods until the 1990s at pits in the outskirts of the parish.Send is buffered by Metropolitan Green Belt from other villages and towns except for the Grove Heath neighbourhood of Ripley. A rural band of the village adjoins the River Wey including Cartbridge and Send Marsh \u2013 this land has been drained and the river tamed by sluices, the Broadmead Cut and the Wey Navigation. The vast majority of the built-up areas are not within an area of flood risk. Between the river and the navigation, in the far north of the parish, are the Papercourt and Broad Mead SSSIs.",
+    "source": "search",
+    "learned_at": "2026-05-17T15:07:34.373254"
+  },
+  "qshutdown": {
+    "content": "For most systems using the Gnome Shell a certain DBus method has been removed, thus ashutdowndialog will be likely to appear ifqshutdown's methods have been set to automatic or to Gnome session. If you do not want thisshutdowndialog to appear, please use ConsoleKit or something else.",
+    "source": "search",
+    "learned_at": "2026-05-17T15:07:44.088939"
   }
 }
