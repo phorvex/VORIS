@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VORIS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        #main {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #face-container {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        #voris-face {
+            width: auto;
+            height: 60vh;
+            max-width: 500px;
+            object-fit: cover;
+            border-radius: 50% 50% 45% 45%;
+            box-shadow:
+                0 0 30px #00ff4166,
+                0 0 60px #00ff4133,
+                0 0 100px #00ff4122;
+            transition: all 0.3s ease;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        #voris-face.speaking {
+            box-shadow:
+                0 0 40px #00ff41aa,
+                0 0 80px #00ff4166,
+                0 0 120px #00ff4133;
+            animation: float 4s ease-in-out infinite, pulse-speak 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-speak {
+            from { box-shadow: 0 0 40px #00ff41aa, 0 0 80px #00ff4166; }
+            to { box-shadow: 0 0 60px #00ffaacc, 0 0 100px #00ffaa88; }
+        }
+
+        #voris-face.thinking {
+            box-shadow:
+                0 0 30px #00aaff88,
+                0 0 60px #00aaff44;
+            filter: brightness(0.85) hue-rotate(20deg);
+        }
+
+        #voris-face.listening {
+            box-shadow:
+                0 0 40px #00ff41cc,
+                0 0 80px #00ff4188;
+            animation: float 4s ease-in-out infinite, pulse-listen 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-listen {
+            from { box-shadow: 0 0 40px #00ff41cc; }
+            to { box-shadow: 0 0 60px #00ff41ff, 0 0 100px #00ff4166; }
+        }
+
+        #voris-name {
+            font-size: 1.2rem;
+            letter-spacing: 0.8rem;
+            color: #00ffaa;
+            text-shadow: 0 0 10px #00ffaa;
+            margin-top: 15px;
+            animation: glow-name 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-name {
+            from { text-shadow: 0 0 10px #00ffaa; }
+            to { text-shadow: 0 0 20px #00ffaa, 0 0 40px #00ff4166; }
+        }
+
+        #status-bar {
+            font-size: 0.75rem;
+            letter-spacing: 0.3rem;
+            color: #00ff41;
+            margin-top: 8px;
+            opacity: 0.8;
+        }
+
+        #divider {
+            width: 80%;
+            max-width: 600px;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #00ff4166, transparent);
+            margin: 10px 0;
+        }
+
+        #conversation {
+            width: 80%;
+            max-width: 600px;
+            padding: 0 10px;
+        }
+
+        #user-line {
+            font-size: 0.85rem;
+            color: #aaffaa;
+            min-height: 20px;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        #voris-line {
+            font-size: 0.9rem;
+            color: #00ffcc;
+            min-height: 20px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 8px #00ffcc44;
+        }
+
+        #input-area {
+            width: 80%;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-top: 1px solid #00ff4133;
+            margin-bottom: 15px;
+        }
+
+        #user-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #00ff4166;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            padding: 5px;
+            outline: none;
+            caret-color: #00ff41;
+        }
+
+        #user-input::placeholder {
+            color: #00ff4144;
+        }
+
+        #mic-btn {
+            background: transparent;
+            border: 1px solid #00ff4166;
+            color: #00ff41;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        #mic-btn:hover {
+            background: #00ff4122;
+            box-shadow: 0 0 10px #00ff4166;
+        }
+
+        #mic-btn.active {
+            background: #00ff4133;
+            border-color: #00ff41;
+            box-shadow: 0 0 15px #00ff41aa;
+            animation: pulse-mic 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-mic {
+            from { box-shadow: 0 0 10px #00ff41aa; }
+            to { box-shadow: 0 0 25px #00ff41ff; }
+        }
+
+        #send-btn {
+            background: transparent;
+            border: 1px solid #00ff4166;
+            color: #00ff41;
+            padding: 5px 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #send-btn:hover {
+            background: #00ff4122;
+            box-shadow: 0 0 10px #00ff4166;
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        #waveform {
+            width: 80%;
+            max-width: 600px;
+            height: 30px;
+            display: none;
+        }
+
+        #waveform.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="matrix-canvas"></canvas>
+
+<div id="main">
+    <div id="face-container">
+        <img id="voris-face" src="/voris_face.jpg" alt="VORIS">
+        <div id="voris-name">V O R I S</div>
+        <div id="status-bar">● STANDBY</div>
+    </div>
+
+    <div id="divider"></div>
+
+    <div id="conversation">
+        <div id="user-line"></div>
+        <div id="voris-line"></div>
+    </div>
+
+    <canvas id="waveform"></canvas>
+
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="speak to VORIS..." autocomplete="off">
+        <button id="mic-btn" title="Toggle mic">🎤</button>
+        <button id="send-btn">SEND</button>
+    </div>
+</div>
+
+<script>
+    // ── SOCKET CONNECTION ─────────────────────────────────────
+    const socket = io();
+    const face = document.getElementById("voris-face");
+    const statusBar = document.getElementById("status-bar");
+    const userLine = document.getElementById("user-line");
+    const vorisLine = document.getElementById("voris-line");
+    const userInput = document.getElementById("user-input");
+    const micBtn = document.getElementById("mic-btn");
+    const sendBtn = document.getElementById("send-btn");
+
+    const STATUS = {
+        idle: "● STANDBY",
+        speaking: "◉ SPEAKING",
+        thinking: "◎ PROCESSING",
+        listening: "◈ LISTENING"
+    };
+
+    socket.on("voris_state", (data) => {
+        const state = data.state;
+        face.className = state === "idle" ? "" : state;
+        statusBar.textContent = STATUS[state] || "● STANDBY";
+    });
+
+    socket.on("voris_response", (data) => {
+        vorisLine.textContent = "VORIS: " + data.text;
+        speakResponse(data.text);
+    });
+
+    // ── SEND MESSAGE ──────────────────────────────────────────
+    function sendMessage(text) {
+        if (!text.trim()) return;
+        userLine.textContent = "You: " + text;
+        vorisLine.textContent = "VORIS: " + String.fromCharCode(9608);
+        socket.emit("voris_state", {state: "thinking"});
+        socket.emit("user_message", {text: text});
+        userInput.value = "";
+    }
+
+    sendBtn.addEventListener("click", () => sendMessage(userInput.value));
+    userInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMessage(userInput.value);
+    });
+
+    // ── VOICE OUTPUT ──────────────────────────────────────────
+    function speakResponse(text) {
+        if ("speechSynthesis" in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.1;
+            utterance.volume = 1.0;
+            // Pick a female voice if available
+            const voices = speechSynthesis.getVoices();
+            const female = voices.find(v => v.name.includes("Female") || v.name.includes("Aria") || v.name.includes("Zira") || v.name.includes("Jenny"));
+            if (female) utterance.voice = female;
+            utterance.onstart = () => {
+                face.className = "speaking";
+                statusBar.textContent = STATUS.speaking;
+            };
+            utterance.onend = () => {
+                face.className = "";
+                statusBar.textContent = STATUS.idle;
+            };
+            speechSynthesis.speak(utterance);
+        }
+    }
+
+    // Load voices
+    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+    // ── MIC INPUT ─────────────────────────────────────────────
+    let recognition = null;
+    let micActive = false;
+
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+
+        recognition.onresult = (e) => {
+            const text = e.results[0][0].transcript;
+            sendMessage(text);
+        };
+
+        recognition.onend = () => {
+            if (micActive) {
+                face.className = "";
+                statusBar.textContent = STATUS.idle;
+                micActive = false;
+                micBtn.classList.remove("active");
+            }
+        };
+
+        recognition.onerror = () => {
+            micActive = false;
+            micBtn.classList.remove("active");
+            face.className = "";
+            statusBar.textContent = STATUS.idle;
+        };
+    }
+
+    micBtn.addEventListener("click", () => {
+        if (!recognition) {
+            alert("Speech recognition not supported in this browser. Use Chrome.");
+            return;
+        }
+        if (micActive) {
+            recognition.stop();
+            micActive = false;
+            micBtn.classList.remove("active");
+            face.className = "";
+            statusBar.textContent = STATUS.idle;
+        } else {
+            recognition.start();
+            micActive = true;
+            micBtn.classList.add("active");
+            face.className = "listening";
+            statusBar.textContent = STATUS.listening;
+        }
+    });
+
+    // ── MATRIX RAIN ───────────────────────────────────────────
+    const canvas = document.getElementById("matrix-canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*+=-~<>[]{}|";
+    const fontSize = 14;
+    const columns = Math.floor(canvas.width / fontSize);
+    const drops = Array(columns).fill(1);
+
+    function drawMatrix() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#00ff41";
+        ctx.font = fontSize + "px monospace";
+        for (let i = 0; i < drops.length; i++) {
+            const char = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+
+    setInterval(drawMatrix, 35);
+
+    window.addEventListener("resize", () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+
+    // ── STARTUP ───────────────────────────────────────────────
+    window.addEventListener("load", () => {
+        setTimeout(() => {
+            vorisLine.textContent = "VORIS: I'm here. What do you need?";
+            speakResponse("I'm here. What do you need?");
+        }, 1500);
+        userInput.focus();
+    });
+</script>
+
+</body>
+</html>
