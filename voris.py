@@ -111,11 +111,11 @@ def detect_intent(text):
     clean = text.lower().replace("?", "").replace(".", "").replace("!", "").strip()
     if any(clean == phrase or clean.startswith(phrase + " ") for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
         return "greeting"
-    if any(phrase in clean for phrase in ["text me", "send me a text", "send sms", "send alert"]):
+    if any(phrase in clean for phrase in ["text me", "send me a text", "send sms", "send alert", "sms me", "shoot me a text"]):
         return "send_sms"
     if any(phrase in clean for phrase in ["call me", "call my phone", "phone me"]):
         return "call_me"
-    if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "write a python", "write a bash", "write a javascript", "write a java", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a", "write me a"]):
+    if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "write a python", "write a bash", "write a javascript", "write a java", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a", "write me a", "generate a", "generate code", "make a script", "make a program"]):
         return "code"
     if any(phrase in clean for phrase in ["save the code", "save it", "save that", "save to", "save the file"]):
         return "save_code"
@@ -185,7 +185,7 @@ def detect_intent(text):
         return "history"
     if any(phrase in clean for phrase in ["what do you know", "show knowledge", "what have you learned"]):
         return "show_knowledge"
-    if any(phrase in clean for phrase in ["system status", "system stats", "how is the system", "system info", "what system are you on", "check system", "system report"]):
+    if any(phrase in clean for phrase in ["system status", "system stats", "how is the system", "system info", "what system are you on", "check system", "system report", "system specs", "my specs", "pc specs", "hardware info", "storage specs", "what is my storage", "disk space"]):
         return "system_status"
     if any(phrase in clean for phrase in ["what is running", "running processes", "show processes", "active processes"]):
         return "processes"
