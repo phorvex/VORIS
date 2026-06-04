@@ -20,6 +20,7 @@ from code_brain import ask_code_brain, is_code_question, is_ollama_available, sa
 from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
 from news import get_news, get_news_brief, list_sources
 from twilio_comm import send_sms, alert, critical_alert, call_admin, start_server, set_handler
+from web_ui import start_web_ui, set_web_handler
 from logger import log_system, log_conversation, log_error, log_learning, log_self, log_security, log_twilio, get_recent_errors, get_recent_alerts, get_todays_summary, read_log, schedule_nightly
 
 if platform.system() == "Linux":
@@ -331,6 +332,8 @@ def handle_remote_input(text):
 
 set_handler(handle_remote_input)
 start_server(handle_remote_input, port=5000)
+set_web_handler(handle_remote_input)
+start_web_ui(handle_remote_input, port=9117)
 
 startup_message = startup(name)
 print(startup_message)
