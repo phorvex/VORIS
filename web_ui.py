@@ -32,7 +32,7 @@ def handle_message(data):
         response = voris_handler(text)
     else:
         response = "I am not fully initialized yet."
-    emit("voris_response", {"text": response})
+    emit("voris_response", {"text": response, "speak": True})
     emit("voris_state", {"state": "idle"})
 
 @socketio.on("connect")
