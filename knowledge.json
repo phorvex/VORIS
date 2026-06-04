@@ -183,5 +183,10 @@
     "content": "For most systems using the Gnome Shell a certain DBus method has been removed, thus ashutdowndialog will be likely to appear ifqshutdown's methods have been set to automatic or to Gnome session. If you do not want thisshutdowndialog to appear, please use ConsoleKit or something else.",
     "source": "search",
     "learned_at": "2026-05-17T15:07:44.088939"
+  },
+  "what tieme is it": {
+    "content": "What Time Is It? is a 1982 album by the Time. Their second album, it was recorded at Sunset Sound and Prince's home studio in the Minneapolis suburbs. The title of the album comes from an exclamation by Morris Day that became associated with the band's on-stage theatrics, appearing frequently on the band's debut album as well.Showcasing the synth-funk of Prince's Minneapolis sound, What Time Is It? produced three singles: \"777-9311\", \"The Walk\" and \"Gigolos Get Lonely Too\".",
+    "source": "search",
+    "learned_at": "2026-06-04T02:06:08.391278"
   }
 }

@@ -2,6 +2,7 @@ import datetime
 import pytz
 import requests
 import re
+import platform
 from dateutil import parser as dateparser
 from timezonefinder import TimezoneFinder
 from geopy.geocoders import Nominatim
@@ -18,8 +19,17 @@ from convert import convert
 from code_brain import ask_code_brain, is_code_question, is_ollama_available, save_code, run_code, serve_html
 from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
 from news import get_news, get_news_brief, list_sources
-from face import set_state, start_face, stop_face, get_input_from_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
-from twilio_comm import send_sms, alert,  critical_alert, call_admin, start_server, set_handler
+from twilio_comm import send_sms, alert, critical_alert, call_admin, start_server, set_handler
+from logger import log_system, log_conversation, log_error, log_learning, log_self, log_security, log_twilio, get_recent_errors, get_recent_alerts, get_todays_summary, read_log, schedule_nightly
+
+if platform.system() == "Linux":
+    from face import set_state, start_face, stop_face, get_input_from_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
+else:
+    def set_state(state, text=""): pass
+    def start_face(): pass
+    def stop_face(): pass
+    def get_input_from_face(): return input("You: ")
+    STATE_IDLE = STATE_SPEAKING = STATE_THINKING = STATE_LISTENING = "idle"
 
 def normalize(key):
     stopwords = ["my", "the", "a", "an", "our", "your"]
@@ -80,7 +90,6 @@ def get_time_in_location(location):
 def calculate(expression):
     try:
         import math as mathlib
-        import re
         clean_expr = expression.lower()
         for word in ["what is", "calculate", "how much is", "whats", "what's"]:
             clean_expr = clean_expr.replace(word, "")
@@ -102,6 +111,10 @@ def detect_intent(text):
     clean = text.lower().replace("?", "").replace(".", "").replace("!", "").strip()
     if any(clean == phrase or clean.startswith(phrase + " ") for phrase in ["hello", "hi", "hey", "sup", "what's up", "wassup"]):
         return "greeting"
+    if any(phrase in clean for phrase in ["text me", "send me a text", "send sms", "send alert"]):
+        return "send_sms"
+    if any(phrase in clean for phrase in ["call me", "call my phone", "phone me"]):
+        return "call_me"
     if any(phrase in clean for phrase in ["write code", "write a function", "write a script", "write a program", "write a python", "write a bash", "write a javascript", "write a java", "debug this", "fix this code", "explain this code", "code for", "help me code", "how do i code", "implement", "create a function", "build a", "write me a"]):
         return "code"
     if any(phrase in clean for phrase in ["save the code", "save it", "save that", "save to", "save the file"]):
@@ -130,6 +143,12 @@ def detect_intent(text):
         return "wake_on"
     if any(phrase in clean for phrase in ["disable wake word", "wake word off", "stop passive"]):
         return "wake_off"
+    if any(phrase in clean for phrase in ["show errors", "recent errors", "what went wrong", "any errors"]):
+        return "show_errors"
+    if any(phrase in clean for phrase in ["show alerts", "any alerts", "critical alerts"]):
+        return "show_alerts"
+    if any(phrase in clean for phrase in ["todays log", "show the log", "read the log", "log summary"]):
+        return "show_log"
     if any(phrase in clean for phrase in ["how are you", "you good", "you okay", "how do you feel"]):
         return "how_are_you"
     if any(phrase in clean for phrase in ["who am i", "what is my name", "what's my name"]):
@@ -210,12 +229,7 @@ def detect_intent(text):
         return "convert"
     if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus", "square root", "squared", "cubed", "sqrt"]):
         return "math"
-    if any(phrase in clean for phrase in ["send me a text", "text me", "send sms", "send alert"]):
-        return "send sms"
-    if any(phrase in clean for phrase in ["call me", "call my phone", "phone me"]):
-        return "call me"
     return None
-
 
 def is_shutdown(text):
     clean = text.lower().strip()
@@ -278,14 +292,20 @@ load_knowledge()
 conversation_history = []
 name = recall("name")
 
-def voris_say(message):
+def voris_say(message, intent="unknown", user_input="", response_time=0.0):
     set_state(STATE_SPEAKING, message[:50])
     print(f"VORIS: {message}")
     conversation_history.append({"role": "voris", "content": message})
     speak(message)
     set_state(STATE_IDLE)
+    try:
+        log_conversation("phillippi", user_input, intent, message, response_time)
+    except:
+        pass
 
 start_face()
+schedule_nightly()
+log_system("VORIS started on " + platform.node(), "INFO")
 
 def handle_remote_input(text):
     text_lower = text.lower().strip()
@@ -318,7 +338,6 @@ speak(startup_message)
 
 TIMEZONE = pytz.timezone("America/New_York")
 
-from face import set_state, start_face, stop_face, get_input_from_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
 while True:
     if is_mic_on():
         spoken = listen()
@@ -347,6 +366,13 @@ while True:
         save_memory()
         name = recall("name")
         voris_say(shutdown(name))
+        stop_face()
+        import curses
+        try:
+            curses.endwin()
+        except:
+            pass
+        log_system("VORIS shutdown.", "INFO")
         break
     elif detect_intent(user_input) == "mic_on":
         result = enable_mic()
@@ -376,6 +402,28 @@ while True:
     elif detect_intent(user_input) == "wake_off":
         result = disable_wake_word()
         voris_say(result)
+    elif detect_intent(user_input) == "send_sms":
+        text = user_input.lower()
+        msg = "VORIS checking in."
+        for phrase in ["send me a text", "text me", "send sms", "send alert"]:
+            if phrase in text:
+                remainder = text.split(phrase)[1].strip()
+                if remainder:
+                    msg = remainder
+                break
+        result = send_sms(msg)
+        log_twilio("SENT", "admin", msg, "success" if result else "failed")
+        voris_say("Message sent." if result else "Couldn't send the message.")
+    elif detect_intent(user_input) == "call_me":
+        voris_say("Calling you now.")
+        log_twilio("CALL", "admin", "user requested call", "initiated")
+        call_admin("This is VORIS. You asked me to call you.")
+    elif detect_intent(user_input) == "show_errors":
+        voris_say(get_recent_errors())
+    elif detect_intent(user_input) == "show_alerts":
+        voris_say(get_recent_alerts())
+    elif detect_intent(user_input) == "show_log":
+        voris_say(get_todays_summary())
     elif detect_intent(user_input) == "greeting":
         name = recall("name")
         voris_say(greeting(name))
@@ -501,6 +549,7 @@ while True:
                 learn(user_input, result, source="code_brain")
             else:
                 voris_say("My coding brain ran into an issue. Try again.")
+                log_error("code_brain", "Coding brain returned no result")
         else:
             voris_say("My coding brain is offline on this machine. Ask me when I'm running on a more powerful system.")
     elif detect_intent(user_input) == "add_note":
@@ -672,21 +721,6 @@ while True:
     elif detect_intent(user_input) == "delete_file":
         path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
         voris_say(delete_file(path))
-
-    elif detect_intent(user_input) == "send_sms":
-        text = user_input.lower()
-        for phrase in ["send me a text", "text me", "send sms", "send alert"]:
-            if phrase in text:
-                msg = text.split(phrase)[1].strip() or "VORIS checking in."
-                break
-        else:
-                msg = "VORIS checking in."
-                result = send_sms(msg)
-                voris_say("Message sent." if result else "Couldnt send the message.")
-    elif detect_intent(user_input) == "call me":
-        voris_say("calling you now.")
-        call_admin("This is VORIS. You asked me to call you.")
-
     elif user_input.lower().startswith("what is"):
         has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
         if has_math:
