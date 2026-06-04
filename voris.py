@@ -20,8 +20,8 @@ from code_brain import ask_code_brain, is_code_question, is_ollama_available, sa
 from notes import add_note, get_notes, clear_notes, delete_note, add_reminder, check_reminders, get_reminders
 from news import get_news, get_news_brief, list_sources
 from twilio_comm import send_sms, alert, critical_alert, call_admin, start_server, set_handler
-from web_ui import start_web_ui, set_web_handler
 from logger import log_system, log_conversation, log_error, log_learning, log_self, log_security, log_twilio, get_recent_errors, get_recent_alerts, get_todays_summary, read_log, schedule_nightly
+from web_ui import start_web_ui, set_web_handler
 
 if platform.system() == "Linux":
     from face import set_state, start_face, stop_face, get_input_from_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
@@ -264,7 +264,7 @@ def get_last_search_query():
         for phrase in ["search for", "look up", "find out about"]:
             if phrase in content:
                 return content.split(phrase)[1].strip()
-        if len(content) > 10 and content != user_input.lower():
+        if len(content) > 10:
             return content
     return None
 
@@ -288,47 +288,332 @@ def is_followup(text):
     ]
     return any(phrase in clean for phrase in followup_phrases)
 
+def is_admin_command(text):
+    blocked = ["sudo", "rm -rf", "mkfs", "dd if", "chmod 777", "chown root", "passwd", "userdel", "usermod"]
+    clean = text.lower()
+    return any(b in clean for b in blocked)
+
+def process_input(user_input, from_web=False):
+    global name
+    response = None
+    extracted = extract_facts(user_input, remember, recall, save_memory)
+    intent = detect_intent(user_input)
+
+    if user_input.lower().startswith("remember"):
+        try:
+            parts = user_input.split("remember")[1].strip()
+            key, value = parts.split(" is ")
+            remember(normalize(key.strip()), value.strip())
+            save_memory()
+            response = remember_confirm(key.strip(), value.strip())
+        except:
+            response = "I couldn't store that. Try: remember X is Y."
+    elif intent == "send_sms":
+        text = user_input.lower()
+        msg = "VORIS checking in."
+        for phrase in ["send me a text", "text me", "send sms", "send alert", "sms me", "shoot me a text"]:
+            if phrase in text:
+                remainder = text.split(phrase)[1].strip()
+                if remainder:
+                    msg = remainder
+                break
+        result = send_sms(msg)
+        log_twilio("SENT", "admin", msg, "success" if result else "failed")
+        response = "Message sent." if result else "Couldn't send the message."
+    elif intent == "call_me":
+        call_admin("This is VORIS. You asked me to call you.")
+        log_twilio("CALL", "admin", "user requested call", "initiated")
+        response = "Calling you now."
+    elif intent == "show_errors":
+        response = get_recent_errors()
+    elif intent == "show_alerts":
+        response = get_recent_alerts()
+    elif intent == "show_log":
+        response = get_todays_summary()
+    elif intent == "greeting":
+        name = recall("name")
+        response = greeting(name)
+    elif intent == "how_are_you":
+        response = how_are_you()
+    elif intent == "identity":
+        name = recall("name")
+        response = f"You are {name}."
+    elif intent == "voris_identity":
+        response = "I am VORIS — Voice Operated Responsive Intelligent System. I exist to serve you, learn from you, and grow with you."
+    elif intent == "age":
+        response = f"You are {recall('age')} years old."
+    elif intent == "birthday":
+        birthday = recall("birthday")
+        response = "I don't know your birthday yet." if birthday == "I don't know that yet." else f"Your birthday is {birthday}."
+    elif intent == "birthday_day":
+        birthday = recall("birthday")
+        if birthday == "I don't know that yet.":
+            response = "I don't know your birthday yet."
+        else:
+            try:
+                year_match = re.search(r'\b(19|20)\d{2}\b', user_input)
+                year = int(year_match.group()) if year_match else datetime.datetime.now().year
+                bday = dateparser.parse(f"{birthday} {year}")
+                day_name = bday.strftime("%A")
+                response = f"Your birthday falls on a {day_name} this year." if year == datetime.datetime.now().year else f"Your birthday fell on a {day_name} in {year}."
+            except:
+                response = search(f"what day is {birthday} {datetime.datetime.now().year}")
+    elif intent == "autolearn":
+        topic = user_input.lower()
+        for phrase in ["learn more about", "learn about", "study", "research", "go learn", "teach yourself about", "teach yourself"]:
+            if phrase in topic:
+                topic = topic.split(phrase)[1].strip()
+                break
+        summary = auto_learn(topic, update_callback=lambda msg: print(f"VORIS: {msg}"))
+        response = summary
+    elif intent == "current_location":
+        location = get_current_location()
+        response = f"Based on your IP, you appear to be in {location}."
+    elif intent == "home_location":
+        location = recall("location")
+        response = "I don't know where you live yet." if location == "I don't know that yet." else f"You live in {location}."
+    elif intent == "time_in_location":
+        loc_text = user_input.lower()
+        for phrase in ["what time is it in", "time in", "current time in"]:
+            if phrase in loc_text:
+                loc_text = loc_text.split(phrase)[1].strip().replace("?", "")
+                break
+        result = get_time_in_location(loc_text)
+        response = result if result else f"I couldn't get the time for {loc_text}."
+    elif intent == "time":
+        response = f"It is {datetime.datetime.now(TIMEZONE).strftime('%I:%M %p')}."
+    elif intent == "date":
+        response = f"Today is {datetime.datetime.now(TIMEZONE).strftime('%A, %B %d %Y')}."
+    elif intent == "date_tomorrow":
+        tomorrow = datetime.datetime.now(TIMEZONE) + datetime.timedelta(days=1)
+        response = f"Tomorrow is {tomorrow.strftime('%A, %B %d %Y')}."
+    elif intent == "weather_here":
+        location = recall("location")
+        if location == "I don't know that yet.":
+            location = get_current_location()
+        response = get_weather(location)
+    elif intent == "weather":
+        text = user_input.lower()
+        location = None
+        for phrase in ["weather in", "weather for"]:
+            if phrase in text:
+                location = text.split(phrase)[1].strip().replace("?", "")
+                break
+        if not location:
+            location = recall("location")
+            if location == "I don't know that yet.":
+                location = "Lakeland Florida"
+        response = get_weather(location)
+    elif intent == "save_code":
+        filepath = None
+        for phrase in ["save to ", "save it to ", "save that to "]:
+            if phrase in user_input.lower():
+                filepath = user_input.lower().split(phrase)[1].strip()
+                break
+        response = save_code(filepath)
+    elif intent == "run_code":
+        response = run_code()
+    elif intent == "serve_html":
+        response = serve_html()
+    elif intent == "code":
+        if is_ollama_available():
+            set_state(STATE_THINKING)
+            result = ask_code_brain(user_input)
+            response = result if result else "My coding brain ran into an issue. Try again."
+        else:
+            response = "My coding brain is offline on this machine."
+    elif intent == "add_note":
+        text = user_input.lower()
+        for phrase in ["take a note", "add a note", "note that", "remember to", "write down"]:
+            if phrase in text:
+                text = text.split(phrase)[1].strip()
+                break
+        response = add_note(text)
+    elif intent == "get_notes":
+        response = get_notes()
+    elif intent == "clear_notes":
+        response = clear_notes()
+    elif intent == "add_reminder":
+        text = user_input.lower()
+        mins_match = re.search(r'(\d+)\s*(minute|min|hour|hr)', text)
+        if mins_match:
+            amount = int(mins_match.group(1))
+            unit = mins_match.group(2)
+            minutes = amount * 60 if "hour" in unit or "hr" in unit else amount
+            reminder_text = text
+            for phrase in ["remind me to", "remind me in", "remind me"]:
+                if phrase in text:
+                    reminder_text = text.split(phrase)[1].strip()
+                    reminder_text = re.sub(r'in \d+ (minute|min|hour|hr)s?', '', reminder_text).strip()
+                    reminder_text = re.sub(r'\d+ (minute|min|hour|hr)s?', '', reminder_text).strip()
+                    reminder_text = re.sub(r'^to\s+', '', reminder_text).strip()
+                    break
+            response = add_reminder(reminder_text, minutes)
+        else:
+            response = "How many minutes should I remind you in?"
+    elif intent == "get_reminders":
+        response = get_reminders()
+    elif intent == "news_brief":
+        response = get_news_brief()
+    elif intent == "news_topic":
+        topic = user_input.lower()
+        for phrase in ["news about", "news on", "show me news about", "get me news on", "show me news", "get me news"]:
+            if phrase in topic:
+                topic = topic.split(phrase)[1].strip()
+                break
+        response = get_news(category=topic)
+    elif intent == "news_sources":
+        response = list_sources()
+    elif intent == "convert":
+        result = convert(user_input)
+        response = result if result else search(user_input)
+    elif intent == "math":
+        result = calculate(user_input)
+        response = result if result else search(user_input)
+    elif intent == "correction":
+        response = "I'll note that. What's the correct answer?"
+    elif intent == "tell_me":
+        topic = user_input.lower()
+        for phrase in ["tell me more about", "tell me about", "tell me more"]:
+            if phrase in topic:
+                topic = topic.split(phrase)[1].strip().replace("?", "")
+                break
+        if topic:
+            cached = recall_knowledge_exact(topic) or recall_knowledge(topic)
+            response = cached if cached else search(topic)
+        else:
+            response = "What would you like to know more about?"
+    elif intent == "search":
+        query = user_input.lower().replace("search for", "").replace("look up", "").replace("find out about", "").strip()
+        cached = recall_knowledge(query)
+        response = cached if cached else search(query)
+    elif intent == "show_knowledge":
+        knowledge_data = get_all_knowledge()
+        if knowledge_data:
+            count = len(knowledge_data)
+            topics = ", ".join(list(knowledge_data.keys())[:5])
+            response = f"I have learned {count} things so far. Recent topics include: {topics}."
+        else:
+            response = "I haven't learned anything from searches yet."
+    elif intent == "history":
+        if len(conversation_history) > 1:
+            last = conversation_history[-2]["content"]
+            response = f"You said: {last}"
+        else:
+            response = "I don't have anything before this."
+    elif intent == "system_status":
+        response = get_system_summary()
+    elif intent == "processes":
+        response = get_running_processes()
+    elif intent == "network":
+        response = get_network_info()
+    elif intent == "partitions":
+        response = get_disk_partitions()
+    elif intent == "battery":
+        response = get_battery()
+    elif intent == "uptime":
+        response = get_uptime()
+    elif intent == "packages":
+        response = get_installed_packages()
+    elif intent == "environment":
+        response = get_environment_vars()
+    elif intent == "run_command":
+        if from_web and is_admin_command(user_input):
+            response = "I can't run admin commands remotely."
+        else:
+            command = user_input.strip()
+            for phrase in ["run ", "execute "]:
+                if user_input.lower().startswith(phrase):
+                    command = user_input[len(phrase):].strip()
+                    break
+            response = run_command(command)
+    elif intent == "list_dir":
+        path = "."
+        for phrase in ["what's in", "list files in", "list directory", "show files in", "show filesystems"]:
+            if phrase in user_input.lower():
+                path = user_input.lower().split(phrase)[1].strip() or "."
+                break
+        response = list_directory(path)
+    elif intent == "create_file":
+        parts = user_input.lower().replace("create file", "").replace("make file", "").replace("new file", "").strip()
+        response = create_file(parts)
+    elif intent == "read_file":
+        path = user_input.lower().replace("read file", "").replace("show file", "").replace("open file", "").strip()
+        response = read_file(path)
+    elif intent == "delete_file":
+        if from_web:
+            response = "File deletion is not allowed from the web interface."
+        else:
+            path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
+            response = delete_file(path)
+    elif user_input.lower().startswith("what is"):
+        has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
+        if has_math:
+            math_result = calculate(user_input)
+            response = math_result if math_result else search(user_input)
+        else:
+            key = normalize(user_input.lower().split("what is")[1].strip())
+            cached = recall_knowledge_exact(key) or recall_knowledge(key)
+            if cached:
+                response = cached
+            else:
+                mem = recall(key)
+                response = mem if mem != "I don't know that yet." else search(user_input)
+    else:
+        last_intent = get_last_intent()
+        if last_intent == "weather" and any(word in user_input.lower() for word in ["tomorrow", "tonight", "weekend", "later"]):
+            location = get_last_location() or "Lakeland Florida"
+            response = get_weather_tomorrow(location)
+        elif is_followup(user_input):
+            last_query = get_last_search_query()
+            if last_query:
+                filler = ["do i need to", "how much would", "what about", "will it", "can i", "should i", "is it", "what is the", "tell me more about", "and the"]
+                clean_followup = user_input.lower()
+                for f in filler:
+                    clean_followup = clean_followup.replace(f, "").strip()
+                combined = f"{clean_followup} {last_query}"
+                cached = recall_knowledge(combined)
+                response = cached if cached else search(combined)
+            else:
+                response = search(user_input)
+        elif extracted:
+            response = "Noted."
+        else:
+            cached = recall_knowledge(user_input)
+            response = cached if cached else search(user_input)
+
+    if response:
+        try:
+            log_conversation("phillippi", user_input, intent or "unknown", response, 0.0)
+            learn(user_input, response, source="voris")
+        except:
+            pass
+
+    return response or "I'm not sure about that."
+
 load_memory()
 load_knowledge()
 conversation_history = []
 name = recall("name")
 
-def voris_say(message, intent="unknown", user_input="", response_time=0.0):
+def voris_say(message):
     set_state(STATE_SPEAKING, message[:50])
     print(f"VORIS: {message}")
     conversation_history.append({"role": "voris", "content": message})
     speak(message)
     set_state(STATE_IDLE)
-    try:
-        log_conversation("phillippi", user_input, intent, message, response_time)
-    except:
-        pass
 
 start_face()
 schedule_nightly()
 log_system("VORIS started on " + platform.node(), "INFO")
 
 def handle_remote_input(text):
-    text_lower = text.lower().strip()
-    if is_shutdown(text_lower):
+    if is_shutdown(text.lower().strip()):
         return "Shutting down is not allowed remotely."
-    intent = detect_intent(text)
-    if intent == "time":
-        now = datetime.datetime.now(TIMEZONE).strftime("%I:%M %p")
-        return f"It is {now}."
-    if intent == "weather" or intent == "weather_here":
-        location = recall("location") or "Lakeland Florida"
-        return get_weather(location)
-    if intent == "news_brief":
-        return get_news_brief()
-    if intent == "system_status":
-        return get_system_summary()
-    if intent == "get_notes":
-        return get_notes()
-    if intent == "get_reminders":
-        return get_reminders()
-    result = search(text)
-    return result
+    conversation_history.append({"role": "user", "content": text})
+    response = process_input(text, from_web=True)
+    conversation_history.append({"role": "voris", "content": response})
+    return response
 
 set_handler(handle_remote_input)
 start_server(handle_remote_input, port=5000)
@@ -350,34 +635,14 @@ while True:
             user_input = get_input_from_face()
     else:
         user_input = get_input_from_face()
+
     conversation_history.append({"role": "user", "content": user_input})
-    extracted = extract_facts(user_input, remember, recall, save_memory)
-    if extracted:
-        voris_say("Noted.")
 
     due_reminders = check_reminders()
     for reminder in due_reminders:
         voris_say(f"Reminder: {reminder}")
 
-    if user_input.lower().startswith("remember"):
-        parts = user_input.split("remember")[1].strip()
-        key, value = parts.split(" is ")
-        remember(normalize(key.strip()), value.strip())
-        save_memory()
-        voris_say(remember_confirm(key.strip(), value.strip()))
-    elif is_shutdown(user_input):
-        save_memory()
-        name = recall("name")
-        voris_say(shutdown(name))
-        stop_face()
-        import curses
-        try:
-            curses.endwin()
-        except:
-            pass
-        log_system("VORIS shutdown.", "INFO")
-        break
-    elif detect_intent(user_input) == "mic_on":
+    if detect_intent(user_input) == "mic_on":
         result = enable_mic()
         print(f"VORIS: {result}")
         speak(result)
@@ -405,388 +670,19 @@ while True:
     elif detect_intent(user_input) == "wake_off":
         result = disable_wake_word()
         voris_say(result)
-    elif detect_intent(user_input) == "send_sms":
-        text = user_input.lower()
-        msg = "VORIS checking in."
-        for phrase in ["send me a text", "text me", "send sms", "send alert"]:
-            if phrase in text:
-                remainder = text.split(phrase)[1].strip()
-                if remainder:
-                    msg = remainder
-                break
-        result = send_sms(msg)
-        log_twilio("SENT", "admin", msg, "success" if result else "failed")
-        voris_say("Message sent." if result else "Couldn't send the message.")
-    elif detect_intent(user_input) == "call_me":
-        voris_say("Calling you now.")
-        log_twilio("CALL", "admin", "user requested call", "initiated")
-        call_admin("This is VORIS. You asked me to call you.")
-    elif detect_intent(user_input) == "show_errors":
-        voris_say(get_recent_errors())
-    elif detect_intent(user_input) == "show_alerts":
-        voris_say(get_recent_alerts())
-    elif detect_intent(user_input) == "show_log":
-        voris_say(get_todays_summary())
-    elif detect_intent(user_input) == "greeting":
+    elif is_shutdown(user_input):
+        save_memory()
         name = recall("name")
-        voris_say(greeting(name))
-    elif detect_intent(user_input) == "how_are_you":
-        voris_say(how_are_you())
-    elif detect_intent(user_input) == "identity":
-        name = recall("name")
-        voris_say(f"You are {name}.")
-    elif detect_intent(user_input) == "voris_identity":
-        voris_say("I am VORIS. I exist to serve you, learn from you, and grow with you.")
-    elif detect_intent(user_input) == "age":
-        age = recall("age")
-        voris_say(f"You are {age} years old.")
-    elif detect_intent(user_input) == "birthday":
-        birthday = recall("birthday")
-        if birthday == "I don't know that yet.":
-            voris_say("I don't know your birthday yet.")
-        else:
-            voris_say(f"Your birthday is {birthday}.")
-    elif detect_intent(user_input) == "birthday_day":
-        birthday = recall("birthday")
-        if birthday == "I don't know that yet.":
-            voris_say("I don't know your birthday yet.")
-        else:
-            try:
-                year_match = re.search(r'\b(19|20)\d{2}\b', user_input)
-                year = int(year_match.group()) if year_match else datetime.datetime.now().year
-                bday = dateparser.parse(f"{birthday} {year}")
-                day_name = bday.strftime("%A")
-                if year == datetime.datetime.now().year:
-                    voris_say(f"Your birthday falls on a {day_name} this year.")
-                else:
-                    voris_say(f"Your birthday fell on a {day_name} in {year}.")
-            except:
-                voris_say(searching())
-                result = search(f"what day is {birthday} {datetime.datetime.now().year}")
-                voris_say(result)
-    elif detect_intent(user_input) == "autolearn":
-        topic = user_input.lower()
-        for phrase in ["learn more about", "learn about", "study", "research", "go learn", "teach yourself about", "teach yourself"]:
-            if phrase in topic:
-                topic = topic.split(phrase)[1].strip()
-                break
-        voris_say(f"Learning about {topic} now. Give me a moment.")
-        summary = auto_learn(topic, update_callback=lambda msg: print(f"VORIS: {msg}"))
-        voris_say(summary)
-    elif detect_intent(user_input) == "current_location":
-        voris_say(searching())
-        location = get_current_location()
-        voris_say(f"Based on your IP, you appear to be in {location}.")
-    elif detect_intent(user_input) == "home_location":
-        location = recall("location")
-        if location == "I don't know that yet.":
-            voris_say("I don't know where you live yet.")
-        else:
-            voris_say(f"You live in {location}.")
-    elif detect_intent(user_input) == "time_in_location":
-        loc_text = user_input.lower()
-        for phrase in ["what time is it in", "time in", "current time in"]:
-            if phrase in loc_text:
-                loc_text = loc_text.split(phrase)[1].strip().replace("?", "")
-                break
-        result = get_time_in_location(loc_text)
-        if result:
-            voris_say(result)
-        else:
-            voris_say(f"I couldn't get the time for {loc_text}.")
-    elif detect_intent(user_input) == "time":
-        now = datetime.datetime.now(TIMEZONE).strftime("%I:%M %p")
-        voris_say(f"It is {now}.")
-    elif detect_intent(user_input) == "date":
-        today = datetime.datetime.now(TIMEZONE).strftime("%A, %B %d %Y")
-        voris_say(f"Today is {today}.")
-    elif detect_intent(user_input) == "date_tomorrow":
-        tomorrow = datetime.datetime.now(TIMEZONE) + datetime.timedelta(days=1)
-        voris_say(f"Tomorrow is {tomorrow.strftime('%A, %B %d %Y')}.")
-    elif detect_intent(user_input) == "weather_here":
-        location = recall("location")
-        if location == "I don't know that yet.":
-            voris_say(searching())
-            location = get_current_location()
-        voris_say(searching())
-        result = get_weather(location)
-        voris_say(result)
-    elif detect_intent(user_input) == "weather":
-        text = user_input.lower()
-        location = None
-        for phrase in ["weather in", "weather for"]:
-            if phrase in text:
-                location = text.split(phrase)[1].strip().replace("?", "")
-                break
-        if not location:
-            location = recall("location")
-            if location == "I don't know that yet.":
-                location = "Lakeland Florida"
-        voris_say(searching())
-        result = get_weather(location)
-        voris_say(result)
-    elif detect_intent(user_input) == "save_code":
-        filepath = None
-        for phrase in ["save to ", "save it to ", "save that to "]:
-            if phrase in user_input.lower():
-                filepath = user_input.lower().split(phrase)[1].strip()
-                break
-        result = save_code(filepath)
-        voris_say(result)
-    elif detect_intent(user_input) == "run_code":
-        voris_say("Running it now.")
-        result = run_code()
-        print(f"VORIS: {result}")
-        conversation_history.append({"role": "voris", "content": result})
-    elif detect_intent(user_input) == "serve_html":
-        result = serve_html()
-        voris_say(result)
-    elif detect_intent(user_input) == "code":
-        if is_ollama_available():
-            set_state(STATE_THINKING)
-            voris_say("On it. Give me a moment to think through this.")
-            result = ask_code_brain(user_input)
-            if result:
-                print(f"VORIS: {result}")
-                conversation_history.append({"role": "voris", "content": result})
-                learn(user_input, result, source="code_brain")
-            else:
-                voris_say("My coding brain ran into an issue. Try again.")
-                log_error("code_brain", "Coding brain returned no result")
-        else:
-            voris_say("My coding brain is offline on this machine. Ask me when I'm running on a more powerful system.")
-    elif detect_intent(user_input) == "add_note":
-        text = user_input.lower()
-        for phrase in ["take a note", "add a note", "note that", "remember to", "write down"]:
-            if phrase in text:
-                text = text.split(phrase)[1].strip()
-                break
-        result = add_note(text)
-        voris_say(result)
-    elif detect_intent(user_input) == "get_notes":
-        voris_say(get_notes())
-    elif detect_intent(user_input) == "clear_notes":
-        result = clear_notes()
-        voris_say(result)
-    elif detect_intent(user_input) == "add_reminder":
-        text = user_input.lower()
-        mins_match = re.search(r'(\d+)\s*(minute|min|hour|hr)', text)
-        if mins_match:
-            amount = int(mins_match.group(1))
-            unit = mins_match.group(2)
-            minutes = amount * 60 if "hour" in unit or "hr" in unit else amount
-            reminder_text = text
-            for phrase in ["remind me to", "remind me in", "remind me"]:
-                if phrase in text:
-                    reminder_text = text.split(phrase)[1].strip()
-                    reminder_text = re.sub(r'in \d+ (minute|min|hour|hr)s?', '', reminder_text).strip()
-                    reminder_text = re.sub(r'\d+ (minute|min|hour|hr)s?', '', reminder_text).strip()
-                    reminder_text = re.sub(r'^to\s+', '', reminder_text).strip()
-                    break
-            result = add_reminder(reminder_text, minutes)
-            voris_say(result)
-        else:
-            voris_say("How many minutes should I remind you in?")
-    elif detect_intent(user_input) == "get_reminders":
-        voris_say(get_reminders())
-    elif detect_intent(user_input) == "news_brief":
-        voris_say("Getting today's top headlines.")
-        result = get_news_brief()
-        voris_say(result)
-    elif detect_intent(user_input) == "news_topic":
-        topic = user_input.lower()
-        for phrase in ["news about", "news on", "show me news about", "get me news on", "show me news", "get me news"]:
-            if phrase in topic:
-                topic = topic.split(phrase)[1].strip()
-                break
-        voris_say(f"Getting news on {topic}.")
-        result = get_news(category=topic)
-        voris_say(result)
-    elif detect_intent(user_input) == "news_sources":
-        voris_say(list_sources())
-    elif detect_intent(user_input) == "convert":
-        result = convert(user_input)
-        if result:
-            voris_say(result)
-        else:
-            voris_say(searching())
-            searched = search(user_input)
-            learn(user_input, searched, source="search")
-            voris_say(searched)
-    elif detect_intent(user_input) == "math":
-        result = calculate(user_input)
-        if result:
-            voris_say(result)
-        else:
-            voris_say(searching())
-            searched = search(user_input)
-            learn(user_input, searched, source="search")
-            voris_say(searched)
-    elif detect_intent(user_input) == "correction":
-        last_voris = None
-        for entry in reversed(conversation_history):
-            if entry["role"] == "voris":
-                last_voris = entry["content"]
-                break
-        voris_say("I'll note that. What's the correct answer?")
-        correction = input("You: ")
-        conversation_history.append({"role": "user", "content": correction})
-        last_query = get_last_search_query()
-        if last_query:
-            learn(last_query, correction, source="user_correction")
-        voris_say("Got it. I've updated what I know.")
-    elif detect_intent(user_input) == "tell_me":
-        topic = user_input.lower()
-        for phrase in ["tell me more about", "tell me about", "tell me more"]:
-            if phrase in topic:
-                topic = topic.split(phrase)[1].strip().replace("?", "")
-                break
-        if not topic or topic == user_input.lower():
-            topic = get_last_topic() or ""
-        if topic:
-            cached = recall_knowledge_exact(topic)
-            if not cached:
-                cached = recall_knowledge(topic)
-            if cached:
-                voris_say(cached)
-            else:
-                voris_say(searching())
-                result = search(topic)
-                learn(topic, result, source="search")
-                voris_say(result)
-        else:
-            voris_say("What would you like to know more about?")
-    elif detect_intent(user_input) == "search":
-        query = user_input.lower().replace("search for", "").replace("look up", "").replace("find out about", "").strip()
-        cached = recall_knowledge(query)
-        if cached:
-            voris_say(cached)
-        else:
-            voris_say(searching())
-            result = search(query)
-            learn(query, result, source="search")
-            voris_say(result)
-    elif detect_intent(user_input) == "show_knowledge":
-        knowledge_data = get_all_knowledge()
-        if knowledge_data:
-            count = len(knowledge_data)
-            topics = ", ".join(list(knowledge_data.keys())[:5])
-            voris_say(f"I have learned {count} things so far. Recent topics include: {topics}.")
-        else:
-            voris_say("I haven't learned anything from searches yet.")
-    elif detect_intent(user_input) == "history":
-        if len(conversation_history) > 1:
-            last = conversation_history[-2]["content"]
-            voris_say(f"You said: {last}")
-        else:
-            voris_say("I don't have anything before this.")
-    elif detect_intent(user_input) == "system_status":
-        voris_say(get_system_summary())
-    elif detect_intent(user_input) == "processes":
-        voris_say("Here are the top running processes:")
-        voris_say(get_running_processes())
-    elif detect_intent(user_input) == "network":
-        voris_say("Network information:")
-        voris_say(get_network_info())
-    elif detect_intent(user_input) == "partitions":
-        voris_say("Disk partitions:")
-        voris_say(get_disk_partitions())
-    elif detect_intent(user_input) == "battery":
-        voris_say(get_battery())
-    elif detect_intent(user_input) == "uptime":
-        voris_say(get_uptime())
-    elif detect_intent(user_input) == "packages":
-        voris_say(get_installed_packages())
-    elif detect_intent(user_input) == "environment":
-        voris_say(get_environment_vars())
-    elif detect_intent(user_input) == "run_command":
-        command = user_input.strip()
-        for phrase in ["run ", "execute "]:
-            if user_input.lower().startswith(phrase):
-                command = user_input[len(phrase):].strip()
-                break
-        voris_say(f"Running: {command}")
-        result = run_command(command)
-        voris_say(result)
-    elif detect_intent(user_input) == "list_dir":
-        path = "."
-        for phrase in ["what's in", "list files in", "list directory", "show files in", "show filesystems"]:
-            if phrase in user_input.lower():
-                path = user_input.lower().split(phrase)[1].strip() or "."
-                break
-        voris_say(list_directory(path))
-    elif detect_intent(user_input) == "create_file":
-        parts = user_input.lower().replace("create file", "").replace("make file", "").replace("new file", "").strip()
-        voris_say(create_file(parts))
-    elif detect_intent(user_input) == "read_file":
-        path = user_input.lower().replace("read file", "").replace("show file", "").replace("open file", "").strip()
-        voris_say(read_file(path))
-    elif detect_intent(user_input) == "delete_file":
-        path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
-        voris_say(delete_file(path))
-    elif user_input.lower().startswith("what is"):
-        has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
-        if has_math:
-            math_result = calculate(user_input)
-            if math_result:
-                voris_say(math_result)
-            else:
-                voris_say(searching())
-                searched = search(user_input)
-                learn(user_input, searched, source="search")
-                voris_say(searched)
-        else:
-            key = normalize(user_input.lower().split("what is")[1].strip())
-            cached = recall_knowledge_exact(key)
-            if not cached:
-                cached = recall_knowledge(key)
-            if cached:
-                voris_say(cached)
-            else:
-                result = recall(key)
-                if result == "I don't know that yet.":
-                    voris_say(not_found(key))
-                    searched = search(user_input)
-                    learn(key, searched, source="search")
-                    voris_say(searched)
-                else:
-                    voris_say(result)
-    else:
-        last_intent = get_last_intent()
-        if last_intent == "weather" and any(word in user_input.lower() for word in ["tomorrow", "tonight", "weekend", "later"]):
-            location = get_last_location() or "Lakeland Florida"
-            voris_say(searching())
-            result = get_weather_tomorrow(location)
-            voris_say(result)
-        elif is_followup(user_input):
-            last_query = get_last_search_query()
-            if last_query:
-                filler = ["do i need to", "how much would", "what about", "will it", "can i", "should i", "is it", "what is the", "tell me more about", "and the"]
-                clean_followup = user_input.lower()
-                for f in filler:
-                    clean_followup = clean_followup.replace(f, "").strip()
-                combined = f"{clean_followup} {last_query}"
-                cached = recall_knowledge(combined)
-                if cached:
-                    voris_say(cached)
-                else:
-                    voris_say(searching())
-                    result = search(combined)
-                    learn(combined, result, source="search")
-                    voris_say(result)
-            else:
-                voris_say(searching())
-                result = search(user_input)
-                learn(user_input, result, source="search")
-                voris_say(result)
-        elif extracted:
+        voris_say(shutdown(name))
+        stop_face()
+        try:
+            import curses
+            curses.endwin()
+        except:
             pass
-        else:
-            cached = recall_knowledge(user_input)
-            if cached:
-                voris_say(cached)
-            else:
-                voris_say(searching())
-                result = search(user_input)
-                learn(user_input, result, source="search")
-                voris_say(result)
+        log_system("VORIS shutdown.", "INFO")
+        break
+    else:
+        response = process_input(user_input, from_web=False)
+        voris_say(response)
+        conversation_history.append({"role": "voris", "content": response})
