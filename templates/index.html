@@ -64,8 +64,15 @@
                 0 0 30px #00ff4166,
                 0 0 60px #00ff4133,
                 0 0 100px #00ff4122;
-            transition: all 0.3s ease;
-            animation: float 4s ease-in-out infinite;
+            transition: box-shadow 0.3s ease;
+            animation: breathe 5s ease-in-out infinite;
+            transform-origin: center bottom;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1) translateY(0px); }
+            30% { transform: scale(1.012) translateY(-4px); }
+            60% { transform: scale(1.008) translateY(-6px); }
         }
 
         @keyframes float {
@@ -292,6 +299,7 @@
     const micBtn = document.getElementById("mic-btn");
     const sendBtn = document.getElementById("send-btn");
 
+    let currentState = "idle";
     const STATUS = {
         idle: "● STANDBY",
         speaking: "◉ SPEAKING",
@@ -300,9 +308,9 @@
     };
 
     socket.on("voris_state", (data) => {
-        const state = data.state;
-        face.className = state === "idle" ? "" : state;
-        statusBar.textContent = STATUS[state] || "● STANDBY";
+        currentState = data.state;
+        face.className = data.state === "idle" ? "" : data.state;
+        statusBar.textContent = STATUS[data.state] || "● STANDBY";
     });
 
     socket.on("voris_response", (data) => {
@@ -334,7 +342,7 @@
             utterance.volume = 1.0;
             // Pick a female voice if available
             const voices = speechSynthesis.getVoices();
-            const female = voices.find(v => v.name.includes("Female") || v.name.includes("Aria") || v.name.includes("Zira") || v.name.includes("Jenny"));
+            const female = voices.find(v => v.name.includes("Microsoft Aria") || v.name.includes("Aria")) || voices.find(v => v.name.includes("Microsoft Jenny") || v.name.includes("Jenny")) || voices.find(v => v.lang === "en-US" && v.name.includes("Microsoft"));
             if (female) utterance.voice = female;
             utterance.onstart = () => {
                 face.className = "speaking";
@@ -401,6 +409,26 @@
             micBtn.classList.add("active");
             face.className = "listening";
             statusBar.textContent = STATUS.listening;
+        }
+    });
+
+    // ── CURSOR REACTIVE GLOW ──────────────────────────────────
+    document.addEventListener("mousemove", (e) => {
+        const rect = face.getBoundingClientRect();
+        const faceCenterX = rect.left + rect.width / 2;
+        const faceCenterY = rect.top + rect.height / 2;
+        const dx = e.clientX - faceCenterX;
+        const dy = e.clientY - faceCenterY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxDist = 600;
+        const intensity = Math.max(0, 1 - dist / maxDist);
+        if (currentState === "idle" || currentState === undefined) {
+            const glow = Math.floor(intensity * 40);
+            face.style.boxShadow = `
+                0 0 ${30 + glow}px #00ff41${Math.floor(40 + intensity * 80).toString(16)},
+                0 0 ${60 + glow * 2}px #00ff4133,
+                0 0 100px #00ff4122
+            `;
         }
     });
 
