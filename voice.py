@@ -1,6 +1,9 @@
 import edge_tts
 import asyncio
 import subprocess
+import platform
+import tempfile
+import os
 
 VOICE = "en-US-AriaNeural"
 voice_enabled = False
@@ -19,11 +22,18 @@ async def speak_async(text):
     text = fix_pronunciation(text)
     try:
         communicate = edge_tts.Communicate(text, VOICE)
-        await communicate.save("/tmp/voris_speech.mp3")
-        subprocess.run(
-            ["mpg123", "-q", "/tmp/voris_speech.mp3"],
-            capture_output=True
-        )
+        if platform.system() == "Windows":
+            tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            tmp.close()
+            await communicate.save(tmp.name)
+            subprocess.run(["mpg123", tmp.name])
+            os.unlink(tmp.name)
+        else:
+            await communicate.save("/tmp/voris_speech.mp3")
+            subprocess.run(
+                ["mpg123", "-q", "/tmp/voris_speech.mp3"],
+                capture_output=True
+            )
     except Exception as e:
         pass
 
