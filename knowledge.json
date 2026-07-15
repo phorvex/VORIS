@@ -232,6 +232,46 @@
   "call me": {
     "content": "Calling you now.",
     "source": "voris",
-    "learned_at": "2026-06-04T03:08:48.450951"
+    "learned_at": "2026-06-10T11:07:01.226512"
+  },
+  "what is the weather": {
+    "content": "Lakeland Florida: \u2601\ufe0f  +83\u00b0F",
+    "source": "voris",
+    "learned_at": "2026-06-04T15:00:46.344641"
+  },
+  "what time is it": {
+    "content": "It is 12:42 PM.",
+    "source": "voris",
+    "learned_at": "2026-07-15T12:42:15.687218"
+  },
+  "wat time is it": {
+    "content": "What Time Is It? is a 1982 album by the Time. Their second album, it was recorded at Sunset Sound and Prince's home studio in the Minneapolis suburbs. The title of the album comes from an exclamation by Morris Day that became associated with the band's on-stage theatrics, appearing frequently on the band's debut album as well.Showcasing the synth-funk of Prince's Minneapolis sound, What Time Is It? produced three singles: \"777-9311\", \"The Walk\" and \"Gigolos Get Lonely Too\".",
+    "source": "voris",
+    "learned_at": "2026-07-15T12:42:12.247827"
+  },
+  "write a python function that prints hello world": {
+    "content": "Certainly! Below is a simple Python function that prints \"Hello World\":\n\n```python\n# Function to print \"Hello World\"\ndef say_hello():\n    # Print the message \"Hello World\"\n    print(\"Hello World\")\n\n# Call the function to execute it\nsay_hello()\n```\n\nThis code defines a function named `say_hello` which includes a single statement to print the string \"Hello World\". The function is then called to perform its action.",
+    "source": "voris",
+    "learned_at": "2026-07-15T12:48:11.589627"
+  },
+  "hello": {
+    "content": "Hey, Phillippi.",
+    "source": "voris",
+    "learned_at": "2026-07-15T13:37:15.238444"
+  },
+  "hi": {
+    "content": "I'm here, Phillippi. What do you need?",
+    "source": "voris",
+    "learned_at": "2026-07-15T13:37:20.118554"
+  },
+  "is the camera on": {
+    "content": "CameraFacing: If you're on a mobile device - thisisthecameracurrently selected either facing you, \"user\" (selfiecam) or \"environment\" (frontcam). Built-in Microphone: Does your webcam have an integrated microphone that allows it to record audio at the same time as video?",
+    "source": "voris",
+    "learned_at": "2026-07-15T13:37:31.965364"
+  },
+  "can you see me": {
+    "content": "Can You See Me? (stylized in all caps) is the fourth studio album by Canadian electronic music producer Rezz, released through her HypnoVizion Records imprint on 14 March 2024.The album saw Rezz pivot from her usual midtempo style, as she focused on a heavy bass sound. A particularly collaborative effort, the album's release was proceeded by five singles.",
+    "source": "voris",
+    "learned_at": "2026-07-15T13:38:57.246261"
   }
 }

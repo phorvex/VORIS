@@ -22,6 +22,7 @@ from news import get_news, get_news_brief, list_sources
 from twilio_comm import send_sms, alert, critical_alert, call_admin, start_server, set_handler
 from logger import log_system, log_conversation, log_error, log_learning, log_self, log_security, log_twilio, get_recent_errors, get_recent_alerts, get_todays_summary, read_log, schedule_nightly
 from web_ui import start_web_ui, set_web_handler
+from vision import enroll_user, verify_face, detect_objects_from_camera, is_camera_available, list_users, delete_user, start_monitoring
 
 if platform.system() == "Linux":
     from face import set_state, start_face, stop_face, get_input_from_face, STATE_IDLE, STATE_SPEAKING, STATE_THINKING, STATE_LISTENING
@@ -230,6 +231,18 @@ def detect_intent(text):
         return "convert"
     if any(c.isdigit() for c in clean) and any(op in clean for op in ["+", "-", "*", "/", "times", "divided by", "plus", "minus", "square root", "squared", "cubed", "sqrt"]):
         return "math"
+    if any(phrase in clean for phrase in ["enroll user", "add user", "register user"]):
+        return "enroll_user"
+    if any(phrase in clean for phrase in ["verify face", "scan my face"]):
+        return "verify_face"
+    if any(phrase in clean for phrase in ["list users", "show users", "who is enrolled"]):
+        return "list_users"
+    if any(phrase in clean for phrase in ["remove user", "delete user", "unenroll"]):
+        return "remove_user"
+    if any(phrase in clean for phrase in ["what do you see", "look around", "scan the room", "whats in front"]):
+        return "detect_objects"
+    if any(phrase in clean for phrase in ["start monitoring", "watch the room", "enable camera"]):
+        return "start_monitoring"
     return None
 
 def is_shutdown(text):
@@ -546,6 +559,55 @@ def process_input(user_input, from_web=False):
         else:
             path = user_input.lower().replace("delete file", "").replace("remove file", "").strip()
             response = delete_file(path)
+    elif intent == "enroll_user":
+        parts = user_input.lower()
+        name = None
+        level = 3
+        for phrase in ["enroll user", "add user", "register user"]:
+            if phrase in parts:
+                remainder = parts.split(phrase)[1].strip()
+                words = remainder.split()
+                if words:
+                    name = words[0].capitalize()
+                for word in words:
+                    if word.isdigit():
+                        level = int(word)
+                break
+        if name:
+            if not is_camera_available():
+                response = "No camera available for enrollment."
+            else:
+                _, result = enroll_user(name, level)
+                response = result
+        else:
+            response = "Who should I enroll? Say: enroll user Name level 3"
+    elif intent == "verify_face":
+        if not is_camera_available():
+            response = "No camera available."
+        else:
+            name, level, msg = verify_face()
+            response = msg
+    elif intent == "list_users":
+        users = list_users()
+        response = "Enrolled users: " + ", ".join(users)
+    elif intent == "remove_user":
+        parts = user_input.lower()
+        uname = "Unknown"
+        for phrase in ["remove user", "delete user", "unenroll"]:
+            if phrase in parts:
+                uname = parts.split(phrase)[1].strip().capitalize()
+                break
+        response = delete_user(uname)
+    elif intent == "detect_objects":
+        if not is_camera_available():
+            response = "No camera available."
+        else:
+            response = detect_objects_from_camera()
+    elif intent == "start_monitoring":
+        def on_detection(event, path):
+            print(f"VORIS: Unknown face detected — {path}")
+        start_monitoring(callback=on_detection)
+        response = "Camera monitoring started. I'll alert you if I see an unknown face."
     elif user_input.lower().startswith("what is"):
         has_math = any(op in user_input.lower() for op in ["square root", "squared", "cubed", "sqrt", "+", "-", "*", "/", "times", "divided by", "plus", "minus"])
         if has_math:
